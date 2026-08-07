@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>LabChat</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- =========================
+         JOIN SCREEN
+    ========================== -->
+
+    <section id="joinScreen" class="screen">
+
+        <div class="join-card">
+
+            <div class="logo">
+                LC
+            </div>
+
+            <h1>LabChat</h1>
+
+            <p class="subtitle">
+                Temporary messaging for your lab
+            </p>
+
+            <form id="joinForm">
+
+                <label for="username">
+                    Your name
+                </label>
+
+                <input
+                    id="username"
+                    type="text"
+                    maxlength="30"
+                    placeholder="Enter your name"
+                    autocomplete="off"
+                    required
+                >
+
+                <button type="submit">
+                    Join Chat
+                </button>
+
+            </form>
+
+            <p class="privacy-note">
+                Messages automatically disappear after 5 minutes.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         CHAT SCREEN
+    ========================== -->
+
+    <section id="chatScreen" class="chat-screen hidden">
+
+        <header class="topbar">
+
+            <div class="brand">
+                <div class="small-logo">
+                    LC
+                </div>
+
+                <div>
+                    <h2>LabChat</h2>
+                    <span id="connectionStatus">
+                        Connecting...
+                    </span>
+                </div>
+            </div>
+
+            <div class="user-info">
+                <span id="currentUser"></span>
+
+                <button
+                    id="leaveButton"
+                    class="leave-button"
+                    type="button"
+                >
+                    Leave
+                </button>
+            </div>
+
+        </header>
+
+
+        <main
+            id="messages"
+            class="messages"
+            aria-live="polite"
+        >
+        </main>
+
+
+        <form id="messageForm" class="message-form">
+
+            <input
+                id="messageInput"
+                type="text"
+                maxlength="2000"
+                placeholder="Type a message..."
+                autocomplete="off"
+            >
+
+            <button
+                type="submit"
+                id="sendButton"
+            >
+                Send
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <!-- Supabase JavaScript client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
