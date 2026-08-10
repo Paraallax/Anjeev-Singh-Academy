@@ -48,6 +48,8 @@
                     required
                 >
 
+                <p id="usernameError" class="username-error"></p>
+
                 <button type="submit">
                     Join Chat
                 </button>
@@ -72,19 +74,33 @@
         <header class="topbar">
 
             <div class="brand">
+
                 <div class="small-logo">
                     LC
                 </div>
 
                 <div>
                     <h2>LabChat</h2>
+
                     <span id="connectionStatus">
                         Connecting...
                     </span>
                 </div>
+
             </div>
 
+
+            <div class="online-info">
+                <span class="online-dot"></span>
+
+                <span id="onlineCount">
+                    0 online
+                </span>
+            </div>
+
+
             <div class="user-info">
+
                 <span id="currentUser"></span>
 
                 <button
@@ -94,10 +110,15 @@
                 >
                     Leave
                 </button>
+
             </div>
 
         </header>
 
+
+        <!-- =========================
+             MESSAGES
+        ========================== -->
 
         <main
             id="messages"
@@ -107,15 +128,43 @@
         </main>
 
 
-        <form id="messageForm" class="message-form">
+        <!-- =========================
+             MESSAGE FORM
+        ========================== -->
 
-            <input
-                id="messageInput"
-                type="text"
-                maxlength="2000"
-                placeholder="Type a message..."
-                autocomplete="off"
+        <form
+            id="messageForm"
+            class="message-form"
+        >
+
+            <div class="input-area">
+
+                <div
+                    id="codeIndicator"
+                    class="code-indicator hidden"
+                >
+                    CODE MODE
+                </div>
+
+                <textarea
+                    id="messageInput"
+                    maxlength="10000"
+                    placeholder="Type a message..."
+                    autocomplete="off"
+                    rows="1"
+                ></textarea>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="codeButton"
+                class="tool-button"
             >
+                &lt;/&gt; Code
+            </button>
+
 
             <button
                 type="submit"
