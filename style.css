@@ -14,12 +14,14 @@
     --accent: #4f8cff;
     --accent-hover: #3b78e7;
     --danger: #ff5d6c;
+    --success: #4ade80;
 }
 
 body {
     min-height: 100vh;
     background: var(--background);
     color: var(--text);
+
     font-family:
         Inter,
         system-ui,
@@ -28,11 +30,6 @@ body {
         "Segoe UI",
         sans-serif;
 }
-
-
-/* =========================
-   COMMON
-========================= */
 
 .hidden {
     display: none !important;
@@ -45,9 +42,11 @@ body {
 
 .screen {
     min-height: 100vh;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
     padding: 20px;
 }
 
@@ -136,13 +135,6 @@ body {
     border-color: var(--accent);
 }
 
-button {
-    border: none;
-    cursor: pointer;
-
-    font: inherit;
-}
-
 #joinForm button {
     width: 100%;
 
@@ -162,6 +154,16 @@ button {
 
 #joinForm button:hover {
     background: var(--accent-hover);
+}
+
+.username-error {
+    min-height: 18px;
+
+    margin-top: 7px;
+
+    color: var(--danger);
+
+    font-size: 13px;
 }
 
 .privacy-note {
@@ -190,11 +192,13 @@ button {
 ========================= */
 
 .topbar {
-    height: 70px;
+    min-height: 70px;
 
     display: flex;
     align-items: center;
     justify-content: space-between;
+
+    gap: 15px;
 
     padding: 0 20px;
 
@@ -206,6 +210,7 @@ button {
 .brand {
     display: flex;
     align-items: center;
+
     gap: 12px;
 }
 
@@ -225,9 +230,34 @@ button {
     font-size: 12px;
 }
 
+.online-info {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    color: var(--muted);
+
+    font-size: 13px;
+
+    margin-left: auto;
+}
+
+.online-dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: var(--success);
+
+    box-shadow:
+        0 0 8px rgba(74, 222, 128, 0.7);
+}
+
 .user-info {
     display: flex;
     align-items: center;
+
     gap: 12px;
 
     color: var(--muted);
@@ -261,11 +291,12 @@ button {
 
     display: flex;
     flex-direction: column;
+
     gap: 12px;
 }
 
 .message {
-    max-width: min(650px, 80%);
+    max-width: min(700px, 80%);
 
     padding: 12px 15px;
 
@@ -289,9 +320,10 @@ button {
 .message-header {
     display: flex;
     align-items: center;
+
     gap: 8px;
 
-    margin-bottom: 5px;
+    margin-bottom: 7px;
 }
 
 .message-user {
@@ -301,7 +333,6 @@ button {
 
 .message-time {
     color: var(--muted);
-
     font-size: 11px;
 }
 
@@ -323,6 +354,114 @@ button {
     color: inherit;
 
     text-decoration: underline;
+}
+
+
+/* =========================
+   MESSAGE ACTIONS
+========================= */
+
+.message-actions {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 6px;
+
+    margin-top: 9px;
+}
+
+.copy-button {
+    padding: 5px 9px;
+
+    border-radius: 7px;
+
+    border: 1px solid var(--border);
+
+    background: var(--surface-2);
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+    cursor: pointer;
+}
+
+.message.mine .copy-button {
+    background: rgba(255, 255, 255, 0.12);
+
+    border-color: rgba(255, 255, 255, 0.2);
+
+    color: white;
+}
+
+.copy-button:hover {
+    color: var(--text);
+}
+
+
+/* =========================
+   CODE MESSAGE
+========================= */
+
+.code-message {
+    width: 100%;
+
+    max-width: 750px;
+
+    background: #0b0f14;
+
+    border-color: #303a48;
+
+    padding: 0;
+
+    overflow: hidden;
+}
+
+.code-message.mine {
+    background: #0b0f14;
+
+    border-color: #303a48;
+}
+
+.code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 8px 12px;
+
+    background: #111720;
+
+    border-bottom: 1px solid #303a48;
+
+    font-size: 11px;
+
+    color: var(--muted);
+}
+
+.code-content {
+    display: block;
+
+    padding: 14px;
+
+    overflow-x: auto;
+
+    color: #e8edf5;
+
+    font-family:
+        "Cascadia Code",
+        "Consolas",
+        "Courier New",
+        monospace;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+
+    white-space: pre;
+
+    tab-size: 4;
 }
 
 
@@ -354,19 +493,32 @@ button {
 .message-form {
     display: flex;
 
-    gap: 10px;
+    align-items: flex-end;
 
-    padding: 15px 20px;
+    gap: 8px;
+
+    padding: 12px 20px;
 
     background: var(--surface);
 
     border-top: 1px solid var(--border);
 }
 
-#messageInput {
+.input-area {
+    position: relative;
+
     flex: 1;
 
     min-width: 0;
+}
+
+#messageInput {
+    width: 100%;
+
+    min-height: 46px;
+    max-height: 220px;
+
+    resize: none;
 
     padding: 13px 15px;
 
@@ -381,13 +533,65 @@ button {
     outline: none;
 
     font-size: 14px;
+
+    line-height: 1.5;
+
+    font-family: inherit;
 }
 
 #messageInput:focus {
     border-color: var(--accent);
 }
 
+.code-indicator {
+    position: absolute;
+
+    top: 7px;
+    right: 8px;
+
+    padding: 3px 7px;
+
+    border-radius: 5px;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    pointer-events: none;
+}
+
+.tool-button {
+    height: 46px;
+
+    padding: 0 13px;
+
+    border-radius: 10px;
+
+    background: var(--surface-2);
+
+    border: 1px solid var(--border);
+
+    color: var(--muted);
+
+    white-space: nowrap;
+}
+
+.tool-button:hover,
+.tool-button.active {
+    color: white;
+
+    border-color: var(--accent);
+
+    background: rgba(79, 140, 255, 0.15);
+}
+
 #sendButton {
+    height: 46px;
+
     padding: 0 20px;
 
     border-radius: 10px;
@@ -410,18 +614,22 @@ button {
    MOBILE
 ========================= */
 
-@media (max-width: 600px) {
-
-    .join-card {
-        padding: 30px 22px;
-    }
+@media (max-width: 700px) {
 
     .topbar {
         padding: 0 12px;
     }
 
+    .online-info {
+        margin-left: 0;
+    }
+
     .user-info {
         gap: 6px;
+    }
+
+    .current-user {
+        display: none;
     }
 
     .messages {
@@ -436,7 +644,30 @@ button {
         padding: 10px;
     }
 
+    .tool-button {
+        padding: 0 9px;
+    }
+
     #sendButton {
         padding: 0 15px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .brand h2 {
+        font-size: 15px;
+    }
+
+    .online-info {
+        font-size: 11px;
+    }
+
+    .tool-button {
+        font-size: 11px;
+    }
+
+    #sendButton {
+        font-size: 12px;
     }
 }
