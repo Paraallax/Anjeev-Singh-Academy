@@ -9,16 +9,20 @@
     --surface: #10151d;
     --surface-2: #171d27;
     --border: #252d39;
+
     --text: #f3f5f7;
     --muted: #8993a1;
+
     --accent: #4f8cff;
     --accent-hover: #3b78e7;
+
     --danger: #ff5d6c;
     --success: #4ade80;
 }
 
 body {
     min-height: 100vh;
+
     background: var(--background);
     color: var(--text);
 
@@ -31,120 +35,247 @@ body {
         sans-serif;
 }
 
+button,
+input,
+textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
 .hidden {
     display: none !important;
 }
 
 
-/* =========================
-   JOIN SCREEN
-========================= */
+/* =========================================
+   LOGIN OVERLAY
+========================================= */
 
-.screen {
-    min-height: 100vh;
+.login-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1000;
 
     display: flex;
+
     align-items: center;
     justify-content: center;
 
     padding: 20px;
+
+    background: rgba(0, 0, 0, 0.72);
+
+    backdrop-filter: blur(8px);
 }
 
-.join-card {
-    width: 100%;
-    max-width: 420px;
 
-    padding: 40px;
+/* =========================================
+   LOGIN MODAL
+========================================= */
+
+.login-modal {
+    position: relative;
+
+    width: 100%;
+    max-width: 400px;
+
+    padding: 36px;
 
     background: var(--surface);
 
     border: 1px solid var(--border);
+
     border-radius: 20px;
 
-    text-align: center;
-
     box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.35);
+        0 25px 80px rgba(0, 0, 0, 0.55);
 }
 
-.logo,
-.small-logo {
+
+/* =========================================
+   LOGIN CLOSE
+========================================= */
+
+.login-close {
+    position: absolute;
+
+    top: 12px;
+    right: 14px;
+
+    width: 34px;
+    height: 34px;
+
     display: flex;
+
     align-items: center;
     justify-content: center;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: var(--muted);
+
+    font-size: 24px;
+
+    line-height: 1;
+
+    transition: 0.2s;
+}
+
+.login-close:hover {
+    background: var(--surface-2);
+
+    color: var(--text);
+}
+
+
+/* =========================================
+   LOGIN LOGO
+========================================= */
+
+.login-logo {
+    width: 58px;
+    height: 58px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 18px;
+
+    border-radius: 12px;
 
     background: var(--accent);
 
     color: white;
 
+    font-size: 20px;
+
     font-weight: 800;
-
-    border-radius: 12px;
 }
 
-.logo {
-    width: 64px;
-    height: 64px;
 
-    margin: 0 auto 20px;
+/* =========================================
+   LOGIN TITLE
+========================================= */
 
-    font-size: 22px;
+.login-modal h1 {
+    text-align: center;
+
+    font-size: 26px;
+
+    margin-bottom: 7px;
 }
 
-.join-card h1 {
-    font-size: 32px;
-    margin-bottom: 8px;
-}
-
-.subtitle {
-    color: var(--muted);
-    margin-bottom: 30px;
-}
-
-#joinForm {
-    text-align: left;
-}
-
-#joinForm label {
-    display: block;
-
-    margin-bottom: 8px;
+.login-subtitle {
+    text-align: center;
 
     color: var(--muted);
 
     font-size: 14px;
+
+    margin-bottom: 28px;
 }
 
-#username {
+
+/* =========================================
+   LOGIN FORM
+========================================= */
+
+#loginForm {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 16px;
+}
+
+.login-field {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.login-field label {
+    color: var(--muted);
+
+    font-size: 13px;
+}
+
+.login-field input {
     width: 100%;
 
-    padding: 14px 16px;
+    padding: 13px 14px;
 
     border: 1px solid var(--border);
-    border-radius: 10px;
 
-    background: var(--surface-2);
-    color: var(--text);
+    border-radius: 10px;
 
     outline: none;
 
-    font-size: 15px;
+    background: var(--surface-2);
+
+    color: var(--text);
+
+    font-size: 14px;
+
+    transition: 0.2s;
 }
 
-#username:focus {
+.login-field input::placeholder {
+    color: #667080;
+}
+
+.login-field input:focus {
     border-color: var(--accent);
+
+    box-shadow:
+        0 0 0 2px rgba(79, 140, 255, 0.12);
 }
 
-#joinForm button {
+
+/* =========================================
+   LOGIN ERROR
+========================================= */
+
+.login-error {
+    min-height: 18px;
+
+    margin-top: -4px;
+
+    color: var(--danger);
+
+    font-size: 13px;
+
+    text-align: center;
+}
+
+
+/* =========================================
+   LOGIN BUTTON
+========================================= */
+
+.login-submit {
     width: 100%;
 
-    margin-top: 15px;
+    padding: 13px;
 
-    padding: 14px;
+    border: 0;
 
     border-radius: 10px;
 
     background: var(--accent);
+
     color: white;
 
     font-weight: 700;
@@ -152,49 +283,58 @@ body {
     transition: 0.2s;
 }
 
-#joinForm button:hover {
+.login-submit:hover {
     background: var(--accent-hover);
 }
 
-.username-error {
-    min-height: 18px;
+.login-submit:disabled {
+    opacity: 0.55;
 
-    margin-top: 7px;
-
-    color: var(--danger);
-
-    font-size: 13px;
+    cursor: not-allowed;
 }
 
-.privacy-note {
-    margin-top: 24px;
+
+/* =========================================
+   LOGIN HINT
+========================================= */
+
+.login-hint {
+    margin-top: 20px;
 
     color: var(--muted);
 
-    font-size: 12px;
+    font-size: 11px;
+
+    text-align: center;
+}
+
+.login-hint strong {
+    color: var(--text);
 }
 
 
-/* =========================
+/* =========================================
    CHAT
-========================= */
+========================================= */
 
 .chat-screen {
     height: 100vh;
 
     display: flex;
+
     flex-direction: column;
 }
 
 
-/* =========================
+/* =========================================
    TOPBAR
-========================= */
+========================================= */
 
 .topbar {
     min-height: 70px;
 
     display: flex;
+
     align-items: center;
     justify-content: space-between;
 
@@ -209,6 +349,7 @@ body {
 
 .brand {
     display: flex;
+
     align-items: center;
 
     gap: 12px;
@@ -218,7 +359,20 @@ body {
     width: 42px;
     height: 42px;
 
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: var(--accent);
+
+    color: white;
+
     font-size: 14px;
+
+    font-weight: 800;
+
+    border-radius: 12px;
 }
 
 .brand h2 {
@@ -227,19 +381,22 @@ body {
 
 .brand span {
     color: var(--muted);
+
     font-size: 12px;
 }
 
 .online-info {
     display: flex;
+
     align-items: center;
+
     gap: 7px;
+
+    margin-left: auto;
 
     color: var(--muted);
 
     font-size: 13px;
-
-    margin-left: auto;
 }
 
 .online-dot {
@@ -256,6 +413,7 @@ body {
 
 .user-info {
     display: flex;
+
     align-items: center;
 
     gap: 12px;
@@ -275,12 +433,18 @@ body {
     color: var(--danger);
 
     border: 1px solid rgba(255, 93, 108, 0.3);
+
+    transition: 0.2s;
+}
+
+.leave-button:hover {
+    background: rgba(255, 93, 108, 0.08);
 }
 
 
-/* =========================
+/* =========================================
    MESSAGES
-========================= */
+========================================= */
 
 .messages {
     flex: 1;
@@ -290,6 +454,7 @@ body {
     padding: 24px;
 
     display: flex;
+
     flex-direction: column;
 
     gap: 12px;
@@ -319,6 +484,7 @@ body {
 
 .message-header {
     display: flex;
+
     align-items: center;
 
     gap: 8px;
@@ -328,11 +494,13 @@ body {
 
 .message-user {
     font-size: 13px;
+
     font-weight: 700;
 }
 
 .message-time {
     color: var(--muted);
+
     font-size: 11px;
 }
 
@@ -357,9 +525,9 @@ body {
 }
 
 
-/* =========================
+/* =========================================
    MESSAGE ACTIONS
-========================= */
+========================================= */
 
 .message-actions {
     display: flex;
@@ -400,22 +568,22 @@ body {
 }
 
 
-/* =========================
+/* =========================================
    CODE MESSAGE
-========================= */
+========================================= */
 
 .code-message {
     width: 100%;
 
     max-width: 750px;
 
-    background: #0b0f14;
-
-    border-color: #303a48;
-
     padding: 0;
 
     overflow: hidden;
+
+    background: #0b0f14;
+
+    border-color: #303a48;
 }
 
 .code-message.mine {
@@ -426,6 +594,7 @@ body {
 
 .code-header {
     display: flex;
+
     align-items: center;
     justify-content: space-between;
 
@@ -435,9 +604,9 @@ body {
 
     border-bottom: 1px solid #303a48;
 
-    font-size: 11px;
-
     color: var(--muted);
+
+    font-size: 11px;
 }
 
 .code-content {
@@ -465,9 +634,9 @@ body {
 }
 
 
-/* =========================
+/* =========================================
    EMPTY STATE
-========================= */
+========================================= */
 
 .empty-state {
     margin: auto;
@@ -480,15 +649,15 @@ body {
 .empty-state strong {
     display: block;
 
-    color: var(--text);
-
     margin-bottom: 5px;
+
+    color: var(--text);
 }
 
 
-/* =========================
+/* =========================================
    MESSAGE FORM
-========================= */
+========================================= */
 
 .message-form {
     display: flex;
@@ -596,11 +765,17 @@ body {
 
     border-radius: 10px;
 
+    border: 0;
+
     background: var(--accent);
 
     color: white;
 
     font-weight: 700;
+}
+
+#sendButton:hover {
+    background: var(--accent-hover);
 }
 
 #sendButton:disabled {
@@ -610,11 +785,38 @@ body {
 }
 
 
-/* =========================
+/* =========================================
+   SCROLLBAR
+========================================= */
+
+.messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+    background: var(--border);
+
+    border-radius: 10px;
+}
+
+.messages::-webkit-scrollbar-thumb:hover {
+    background: #344052;
+}
+
+
+/* =========================================
    MOBILE
-========================= */
+========================================= */
 
 @media (max-width: 700px) {
+
+    .login-modal {
+        padding: 30px 24px;
+    }
 
     .topbar {
         padding: 0 12px;
@@ -626,10 +828,6 @@ body {
 
     .user-info {
         gap: 6px;
-    }
-
-    .current-user {
-        display: none;
     }
 
     .messages {
@@ -653,7 +851,16 @@ body {
     }
 }
 
+
 @media (max-width: 480px) {
+
+    .login-modal {
+        padding: 28px 20px;
+    }
+
+    .login-modal h1 {
+        font-size: 23px;
+    }
 
     .brand h2 {
         font-size: 15px;
@@ -669,5 +876,117 @@ body {
 
     #sendButton {
         font-size: 12px;
+    }
+
+}
+
+/* =========================
+   PDF DOCUMENT
+========================= */
+
+.pdf-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin: 12px 20px 0;
+    padding: 12px 15px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.pdf-info {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 0;
+}
+
+.pdf-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 42px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    border-radius: 9px;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.pdf-details {
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+
+    min-width: 0;
+}
+
+.pdf-details strong {
+    font-size: 13px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pdf-details span {
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+.pdf-button {
+    flex-shrink: 0;
+
+    padding: 8px 13px;
+
+    border-radius: 8px;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    text-decoration: none;
+
+    transition: 0.2s;
+}
+
+.pdf-button:hover {
+    background: var(--accent-hover);
+}
+
+@media (max-width: 600px) {
+
+    .pdf-section {
+        margin: 10px 10px 0;
+        padding: 10px;
+    }
+
+    .pdf-details strong {
+        max-width: 180px;
+    }
+
+    .pdf-button {
+        padding: 8px 10px;
     }
 }
