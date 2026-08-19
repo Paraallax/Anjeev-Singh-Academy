@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -10,178 +12,381 @@
 
     <title>LabChat</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
 </head>
+
 
 <body>
 
-    <!-- =========================
-         JOIN SCREEN
-    ========================== -->
 
-    <section id="joinScreen" class="screen">
+<!-- =====================================================
+     LOGIN OVERLAY
+===================================================== -->
 
-        <div class="join-card">
+<div
+    id="loginOverlay"
+    class="login-overlay hidden"
+>
 
-            <div class="logo">
-                LC
-            </div>
+    <div
+        id="loginModal"
+        class="login-modal"
+    >
 
-            <h1>LabChat</h1>
+        <button
+            id="closeLoginButton"
+            class="login-close"
+            type="button"
+            aria-label="Close login"
+        >
+            ×
+        </button>
 
-            <p class="subtitle">
-                Temporary messaging for your lab
-            </p>
 
-            <form id="joinForm">
+        <!-- LOGIN LOGO -->
 
-                <label for="username">
-                    Your name
+        <div class="login-logo">
+            LC
+        </div>
+
+
+        <h1>
+            LabChat Login
+        </h1>
+
+
+        <p class="login-subtitle">
+            Sign in to continue
+        </p>
+
+
+        <!-- LOGIN FORM -->
+
+        <form id="loginForm">
+
+
+            <!-- EMAIL / ID -->
+
+            <div class="login-field">
+
+                <label for="loginIdentifier">
+                    Email / ID
                 </label>
 
                 <input
-                    id="username"
+                    id="loginIdentifier"
                     type="text"
-                    maxlength="30"
-                    placeholder="Enter your name"
-                    autocomplete="off"
+                    placeholder="Enter your email or ID"
+                    autocomplete="username"
                     required
                 >
 
-                <p id="usernameError" class="username-error"></p>
-
-                <button type="submit">
-                    Join Chat
-                </button>
-
-            </form>
-
-            <p class="privacy-note">
-                Messages automatically disappear after 5 minutes.
-            </p>
-
-        </div>
-
-    </section>
-
-
-    <!-- =========================
-         CHAT SCREEN
-    ========================== -->
-
-    <section id="chatScreen" class="chat-screen hidden">
-
-        <header class="topbar">
-
-            <div class="brand">
-
-                <div class="small-logo">
-                    LC
-                </div>
-
-                <div>
-                    <h2>LabChat</h2>
-
-                    <span id="connectionStatus">
-                        Connecting...
-                    </span>
-                </div>
-
             </div>
 
 
-            <div class="online-info">
-                <span class="online-dot"></span>
+            <!-- PASSWORD -->
 
-                <span id="onlineCount">
-                    0 online
-                </span>
-            </div>
+            <div class="login-field">
 
+                <label for="loginPassword">
+                    Password
+                </label>
 
-            <div class="user-info">
-
-                <span id="currentUser"></span>
-
-                <button
-                    id="leaveButton"
-                    class="leave-button"
-                    type="button"
+                <input
+                    id="loginPassword"
+                    type="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
                 >
-                    Leave
-                </button>
 
             </div>
 
-        </header>
+
+            <!-- LOGIN ERROR -->
+
+            <p
+                id="loginError"
+                class="login-error"
+            ></p>
 
 
-        <!-- =========================
-             MESSAGES
-        ========================== -->
-
-        <main
-            id="messages"
-            class="messages"
-            aria-live="polite"
-        >
-        </main>
-
-
-        <!-- =========================
-             MESSAGE FORM
-        ========================== -->
-
-        <form
-            id="messageForm"
-            class="message-form"
-        >
-
-            <div class="input-area">
-
-                <div
-                    id="codeIndicator"
-                    class="code-indicator hidden"
-                >
-                    CODE MODE
-                </div>
-
-                <textarea
-                    id="messageInput"
-                    maxlength="10000"
-                    placeholder="Type a message..."
-                    autocomplete="off"
-                    rows="1"
-                ></textarea>
-
-            </div>
-
+            <!-- LOGIN BUTTON -->
 
             <button
-                type="button"
-                id="codeButton"
-                class="tool-button"
-            >
-                &lt;/&gt; Code
-            </button>
-
-
-            <button
+                id="loginButton"
+                class="login-submit"
                 type="submit"
-                id="sendButton"
             >
-                Send
+                Login
             </button>
+
 
         </form>
 
+
+        <p class="login-hint">
+            Press
+            <strong>Ctrl + Shift + L</strong>
+            to open login.
+        </p>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     LABCHAT APPLICATION
+===================================================== -->
+
+<section
+    id="chatScreen"
+    class="chat-screen"
+>
+
+
+    <!-- =================================================
+         TOP BAR
+    ================================================== -->
+
+    <header class="topbar">
+
+
+        <!-- BRAND -->
+
+        <div class="brand">
+
+            <div class="small-logo">
+                LC
+            </div>
+
+            <div>
+
+                <h2>
+                    LabChat
+                </h2>
+
+                <span id="connectionStatus">
+                    Connecting...
+                </span>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- ONLINE USERS -->
+
+        <div class="online-info">
+
+            <span class="online-dot"></span>
+
+            <span id="onlineCount">
+                0 online
+            </span>
+
+        </div>
+
+
+
+        <!-- USER -->
+
+        <div class="user-info">
+
+            <span id="currentUser">
+                Guest
+            </span>
+
+            <button
+                id="leaveButton"
+                class="leave-button"
+                type="button"
+            >
+                Sign Out
+            </button>
+
+        </div>
+
+
+    </header>
+
+
+
+    <!-- =================================================
+         LOGIN STATUS
+    ================================================== -->
+
+    <div
+        id="loginNotice"
+        class="login-notice"
+    >
+
+        <span>
+            You are not signed in.
+        </span>
+
+        <button
+            id="openLoginButton"
+            type="button"
+        >
+            Login
+        </button>
+
+    </div>
+
+
+
+    <!-- =================================================
+         PDF DOCUMENT
+    ================================================== -->
+
+    <section
+        id="pdfSection"
+        class="pdf-section hidden"
+    >
+
+
+        <div class="pdf-info">
+
+
+            <div class="pdf-icon">
+                PDF
+            </div>
+
+
+            <div class="pdf-details">
+
+                <strong id="pdfTitle">
+                    Lab PDF
+                </strong>
+
+                <span id="pdfStatus">
+                    Loading PDF...
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+
+        <a
+            id="pdfButton"
+            class="pdf-button"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Open PDF
+        </a>
+
+
     </section>
 
 
-    <!-- Supabase JavaScript client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script src="script.js"></script>
+    <!-- =================================================
+         MESSAGES
+    ================================================== -->
+
+    <main
+        id="messages"
+        class="messages"
+        aria-live="polite"
+    >
+
+    </main>
+
+
+
+    <!-- =================================================
+         MESSAGE FORM
+    ================================================== -->
+
+    <form
+        id="messageForm"
+        class="message-form"
+    >
+
+
+        <div class="input-area">
+
+
+            <div
+                id="codeIndicator"
+                class="code-indicator hidden"
+            >
+                CODE MODE
+            </div>
+
+
+            <textarea
+                id="messageInput"
+                maxlength="10000"
+                placeholder="Login to send a message..."
+                autocomplete="off"
+                rows="1"
+                disabled
+            ></textarea>
+
+
+        </div>
+
+
+
+        <!-- CODE BUTTON -->
+
+        <button
+            type="button"
+            id="codeButton"
+            class="tool-button"
+            disabled
+        >
+            &lt;/&gt; Code
+        </button>
+
+
+
+        <!-- SEND -->
+
+        <button
+            type="submit"
+            id="sendButton"
+            disabled
+        >
+            Send
+        </button>
+
+
+    </form>
+
+
+</section>
+
+
+
+<!-- =====================================================
+     SUPABASE
+===================================================== -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+
+<!-- =====================================================
+     LABCHAT JAVASCRIPT
+===================================================== -->
+
+<script src="script.js"></script>
+
 
 </body>
 </html>
