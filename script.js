@@ -1,12 +1,13 @@
+```javascript
 /* =========================================================
    LABCHAT
    Main Client Application
-========================================================= */
+   ========================================================= */
 
 
 /* =========================================================
    SUPABASE CONFIG
-========================================================= */
+   ========================================================= */
 
 const SUPABASE_URL =
     "https://izobeyuplyramoojazdg.supabase.co";
@@ -17,7 +18,7 @@ const SUPABASE_KEY =
 
 /* =========================================================
    SUPABASE CLIENT
-========================================================= */
+   ========================================================= */
 
 const supabaseClient =
     window.supabase.createClient(
@@ -28,7 +29,7 @@ const supabaseClient =
 
 /* =========================================================
    PDF CONFIG
-========================================================= */
+   ========================================================= */
 
 const PDF_FILE =
     "XI-AI-UNIT-3-Python-Programming.pdf";
@@ -45,7 +46,7 @@ const PDFJS_WORKER_URL =
 
 /* =========================================================
    APPLICATION STATE
-========================================================= */
+   ========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
@@ -58,52 +59,47 @@ let isCodeMode = false;
 
 /* =========================================================
    LABCHAT SESSION STATE
-========================================================= */
+   ========================================================= */
 
 /*
- * This session ID belongs to THIS browser tab.
+ * IMPORTANT AUTHENTICATION CHANGE
  *
- * sessionStorage survives:
- * - page refresh
- * - navigation within the same tab
+ * LabChat does NOT automatically restore a previous
+ * Supabase login when the website is opened.
  *
- * sessionStorage disappears when:
- * - the tab is closed
+ * Every fresh page load starts as Guest.
+ *
+ * Supabase itself may still have a persisted auth
+ * session in localStorage, so initializeLabChat()
+ * explicitly clears that persisted session before
+ * allowing the application to continue.
  *
  * Therefore:
  *
- * SAME TAB + REFRESH
- *     = same session ID
+ * OPEN SITE
+ *      ↓
+ * GUEST
+ *      ↓
+ * USER ENTERS EMAIL + PASSWORD
+ *      ↓
+ * LOGIN
  *
- * NEW TAB
- *     = new session ID
+ * No automatic login.
  */
-
-const TAB_SESSION_KEY =
-    "labchat_tab_session";
-
-const TAB_SESSION_VALUE =
-    "active";
 
 
 /*
- * Actual LabChat account session ID.
+ * LabChat account session ID.
+ *
+ * This is only used for the single-device session
+ * protection and presence system.
  */
+
 const SESSION_ID_KEY =
     "labchat_session_id";
 
-
-/*
- * Database heartbeat interval.
- *
- * The SQL function considers a session inactive
- * after 60 seconds.
- *
- * We update every 20 seconds.
- */
 const SESSION_HEARTBEAT_INTERVAL =
     20 * 1000;
-
 
 let userSessionId = null;
 
@@ -111,15 +107,16 @@ let sessionHeartbeatTimer = null;
 
 
 /*
- * Admin tab session.
+ * Admin session marker.
  */
+
 const ADMIN_TAB_SESSION_KEY =
     "labchat_admin_tab_session";
 
 
 /* =========================================================
    PDF STATE
-========================================================= */
+   ========================================================= */
 
 let pdfjsLib = null;
 let pdfDocument = null;
@@ -138,7 +135,7 @@ let pdfInitialized = false;
 
 /* =========================================================
    MESSAGE EXPIRY TIMERS
-========================================================= */
+   ========================================================= */
 
 const messageTimers =
     new Map();
@@ -146,7 +143,7 @@ const messageTimers =
 
 /* =========================================================
    DOM ELEMENTS
-========================================================= */
+   ========================================================= */
 
 
 /* ---------- PDF ---------- */
@@ -320,7 +317,7 @@ const leaveButton =
 
 /* =========================================================
    INITIALIZATION
-========================================================= */
+   ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -359,14 +356,20 @@ async function initializeLabChat() {
 
 
     /*
-     * Restore authentication.
+     * IMPORTANT:
+     *
+     * DO NOT restore the previous Supabase
+     * authentication session.
+     *
+     * Instead, clear any persisted local
+     * authentication state and start as Guest.
      */
 
-    await restoreSession();
+    await startFreshGuestSession();
 
 
     /*
-     * Listen for authentication changes.
+     * Listen for future authentication changes.
      */
 
     setupAuthListener();
@@ -379,8 +382,137 @@ async function initializeLabChat() {
 
 
 /* =========================================================
+   START FRESH GUEST SESSION
+   ========================================================= */
+
+/*
+ * This is the main fix for the old auto-login problem.
+ *
+ * Supabase Auth normally persists sessions in localStorage.
+ *
+ * That means:
+ *
+ *     signIn()
+ *          ↓
+ *     browser stores session
+ *          ↓
+ *     site reopened
+ *          ↓
+ *     getSession()
+ *          ↓
+ *     OLD USER AUTOMATICALLY LOGGED IN
+ *
+ * We explicitly sign out on every page load.
+ *
+ * The user must therefore enter their credentials again.
+ */
+
+async function startFreshGuestSession() {
+
+    console.log(
+        "Starting LabChat as Guest..."
+    );
+
+
+    /*
+     * Stop any local LabChat state.
+     */
+
+    stopSessionHeartbeat();
+
+    await cleanupRealtime();
+
+    clearMessageTimers();
+
+
+    /*
+     * Remove LabChat's own session markers.
+     */
+
+    sessionStorage.removeItem(
+        SESSION_ID_KEY
+    );
+
+    sessionStorage.removeItem(
+        ADMIN_TAB_SESSION_KEY
+    );
+
+
+    userSessionId =
+        null;
+
+
+    currentUser =
+        null;
+
+    currentProfile =
+        null;
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Clear the persisted Supabase Auth session.
+     *
+     * This prevents a previous login from being
+     * automatically restored.
+     */
+
+    try {
+
+        const {
+            error
+        } =
+            await supabaseClient.auth.signOut(
+                {
+                    scope: "local"
+                }
+            );
+
+
+        if (
+            error
+        ) {
+
+            console.warn(
+                "Could not clear previous Supabase session:",
+                error
+            );
+
+        }
+
+    } catch (
+        error
+    ) {
+
+        console.warn(
+            "Unexpected auth cleanup error:",
+            error
+        );
+
+    }
+
+
+    /*
+     * Explicitly put the UI into Guest state.
+     */
+
+    showGuestState();
+
+    setStatus(
+        "Ready"
+    );
+
+
+    console.log(
+        "LabChat is ready. Login required."
+    );
+}
+
+
+/* =========================================================
    AUTH STATE LISTENER
-========================================================= */
+   ========================================================= */
 
 function setupAuthListener() {
 
@@ -424,8 +556,8 @@ function setupAuthListener() {
             ) {
 
                 /*
-                 * Do not repeatedly load the
-                 * same profile.
+                 * Do not repeatedly load the same
+                 * profile.
                  */
 
                 if (
@@ -451,7 +583,7 @@ function setupAuthListener() {
 
 /* =========================================================
    LABCHAT SESSION ID
-========================================================= */
+   ========================================================= */
 
 function getLabChatSessionId() {
 
@@ -462,8 +594,8 @@ function getLabChatSessionId() {
 
 
     /*
-     * Create a new ID only when this tab
-     * doesn't already have one.
+     * Create a new ID when this tab does not
+     * already have one.
      */
 
     if (
@@ -492,7 +624,7 @@ function getLabChatSessionId() {
 
 /* =========================================================
    CLAIM LABCHAT SESSION
-========================================================= */
+   ========================================================= */
 
 async function claimLabChatSession() {
 
@@ -543,13 +675,11 @@ async function claimLabChatSession() {
 
 
         /*
-         * The database function returns:
+         * true =
+         * session successfully claimed
          *
-         * true
-         *     = session successfully claimed
-         *
-         * false
-         *     = another active computer owns it
+         * false =
+         * another active computer owns it
          */
 
         if (
@@ -563,10 +693,6 @@ async function claimLabChatSession() {
             return false;
         }
 
-
-        /*
-         * Start heartbeat after successful claim.
-         */
 
         startSessionHeartbeat();
 
@@ -595,7 +721,7 @@ async function claimLabChatSession() {
 
 /* =========================================================
    SESSION HEARTBEAT
-========================================================= */
+   ========================================================= */
 
 function startSessionHeartbeat() {
 
@@ -610,16 +736,8 @@ function startSessionHeartbeat() {
     }
 
 
-    /*
-     * Update immediately.
-     */
-
     updateSessionHeartbeat();
 
-
-    /*
-     * Then update every 20 seconds.
-     */
 
     sessionHeartbeatTimer =
         setInterval(
@@ -631,7 +749,7 @@ function startSessionHeartbeat() {
 
 /* =========================================================
    UPDATE SESSION HEARTBEAT
-========================================================= */
+   ========================================================= */
 
 async function updateSessionHeartbeat() {
 
@@ -688,7 +806,7 @@ async function updateSessionHeartbeat() {
 
 
         /*
-         * If zero rows were updated, the session
+         * If no row was updated, the session
          * may have been removed or replaced.
          */
 
@@ -701,9 +819,11 @@ async function updateSessionHeartbeat() {
                 "LabChat session is no longer active."
             );
 
+
             setStatus(
                 "Session expired"
             );
+
 
             stopSessionHeartbeat();
 
@@ -724,7 +844,7 @@ async function updateSessionHeartbeat() {
 
 /* =========================================================
    STOP SESSION HEARTBEAT
-========================================================= */
+   ========================================================= */
 
 function stopSessionHeartbeat() {
 
@@ -736,6 +856,7 @@ function stopSessionHeartbeat() {
             sessionHeartbeatTimer
         );
 
+
         sessionHeartbeatTimer =
             null;
     }
@@ -744,7 +865,7 @@ function stopSessionHeartbeat() {
 
 /* =========================================================
    RELEASE LABCHAT SESSION
-========================================================= */
+   ========================================================= */
 
 async function releaseLabChatSession() {
 
@@ -823,7 +944,7 @@ async function releaseLabChatSession() {
 
 /* =========================================================
    PDF INITIALIZATION
-========================================================= */
+   ========================================================= */
 
 async function initializePDFViewer() {
 
@@ -856,7 +977,6 @@ async function initializePDFViewer() {
     showPDFLoading(
         true
     );
-
 
     hidePDFError();
 
@@ -928,7 +1048,6 @@ async function initializePDFViewer() {
 
         updatePDFPageNumber();
 
-
         updatePDFZoomDisplay();
 
 
@@ -967,7 +1086,7 @@ async function initializePDFViewer() {
 
 /* =========================================================
    PDF CONTROLS
-========================================================= */
+   ========================================================= */
 
 function setupPDFControls() {
 
@@ -1060,7 +1179,7 @@ function setupPDFControls() {
 
 /* =========================================================
    RENDER ALL PDF PAGES
-========================================================= */
+   ========================================================= */
 
 async function renderAllPDFPages() {
 
@@ -1162,7 +1281,7 @@ async function renderAllPDFPages() {
 
 /* =========================================================
    RENDER SINGLE PDF PAGE
-========================================================= */
+   ========================================================= */
 
 async function renderSinglePDFPage(
     pageNumber,
@@ -1341,7 +1460,7 @@ async function renderSinglePDFPage(
 
 /* =========================================================
    PDF PAGE OBSERVER
-========================================================= */
+   ========================================================= */
 
 function setupPDFPageObserver() {
 
@@ -1451,7 +1570,7 @@ function setupPDFPageObserver() {
 
 /* =========================================================
    PDF CURRENT PAGE FROM SCROLL
-========================================================= */
+   ========================================================= */
 
 function updatePDFCurrentPageFromScroll() {
 
@@ -1514,7 +1633,6 @@ function updatePDFCurrentPageFromScroll() {
 
 
                     return;
-
                 }
 
 
@@ -1561,7 +1679,7 @@ function updatePDFCurrentPageFromScroll() {
 
 /* =========================================================
    GO TO PDF PAGE
-========================================================= */
+   ========================================================= */
 
 function goToPDFPage(
     pageNumber
@@ -1621,7 +1739,7 @@ function goToPDFPage(
 
 /* =========================================================
    GET PDF PAGE ELEMENT
-========================================================= */
+   ========================================================= */
 
 function getPDFPageElement(
     pageNumber
@@ -1635,7 +1753,7 @@ function getPDFPageElement(
 
 /* =========================================================
    PDF PAGE NUMBER
-========================================================= */
+   ========================================================= */
 
 function updatePDFPageNumber() {
 
@@ -1678,7 +1796,7 @@ function updatePDFPageNumber() {
 
 /* =========================================================
    PDF ZOOM
-========================================================= */
+   ========================================================= */
 
 async function changePDFZoom(
     amount
@@ -1724,7 +1842,7 @@ async function changePDFZoom(
 
 /* =========================================================
    FIT PDF TO WIDTH
-========================================================= */
+   ========================================================= */
 
 async function fitPDFToWidth() {
 
@@ -1752,7 +1870,7 @@ async function fitPDFToWidth() {
 
 /* =========================================================
    PDF ZOOM DISPLAY
-========================================================= */
+   ========================================================= */
 
 function updatePDFZoomDisplay() {
 
@@ -1775,7 +1893,7 @@ function updatePDFZoomDisplay() {
 
 /* =========================================================
    PDF LOADING / ERROR
-========================================================= */
+   ========================================================= */
 
 function showPDFLoading(
     show
@@ -1818,7 +1936,7 @@ function hidePDFError() {
 
 /* =========================================================
    LOGIN CONTROLS
-========================================================= */
+   ========================================================= */
 
 function setupLoginControls() {
 
@@ -1854,7 +1972,7 @@ function setupLoginControls() {
 
 /* =========================================================
    OPEN LOGIN
-========================================================= */
+   ========================================================= */
 
 function openLogin() {
 
@@ -1887,7 +2005,7 @@ function openLogin() {
 
 /* =========================================================
    CLOSE LOGIN
-========================================================= */
+   ========================================================= */
 
 function closeLogin() {
 
@@ -1899,7 +2017,7 @@ function closeLogin() {
 
 /* =========================================================
    LOGIN
-========================================================= */
+   ========================================================= */
 
 async function handleLogin(
     event
@@ -1960,6 +2078,36 @@ async function handleLogin(
 
     try {
 
+        /*
+         * Make absolutely sure there is no
+         * previous local authentication session.
+         */
+
+        try {
+
+            await supabaseClient.auth.signOut(
+                {
+                    scope:
+                        "local"
+                }
+            );
+
+        } catch (
+            clearError
+        ) {
+
+            console.warn(
+                "Previous session cleanup warning:",
+                clearError
+            );
+
+        }
+
+
+        /*
+         * Actual login.
+         */
+
         const {
             data,
             error
@@ -2007,12 +2155,8 @@ async function handleLogin(
 
 
         /*
-         * loadUserProfile() now handles:
-         *
-         * - profile validation
-         * - role validation
-         * - session claiming
-         * - heartbeat
+         * Validate profile and claim the
+         * LabChat single-device session.
          */
 
         const success =
@@ -2026,23 +2170,37 @@ async function handleLogin(
         ) {
 
             /*
-             * If the account could not be claimed,
-             * don't leave the Supabase authentication
-             * session active.
+             * Never leave an invalid login
+             * authenticated.
              */
 
-            await supabaseClient.auth.signOut();
+            try {
 
+                await supabaseClient.auth.signOut();
 
-            sessionStorage.removeItem(
-                TAB_SESSION_KEY
-            );
+            } catch (
+                signOutError
+            ) {
+
+                console.warn(
+                    "Login cleanup failed:",
+                    signOutError
+                );
+
+            }
+
 
             sessionStorage.removeItem(
                 SESSION_ID_KEY
             );
 
+            sessionStorage.removeItem(
+                ADMIN_TAB_SESSION_KEY
+            );
+
+
             stopSessionHeartbeat();
+
 
             userSessionId =
                 null;
@@ -2082,193 +2240,8 @@ async function handleLogin(
 
 
 /* =========================================================
-   RESTORE SESSION
-========================================================= */
-
-async function restoreSession() {
-
-    try {
-
-        /*
-         * Check whether this TAB already has an
-         * active LabChat tab session.
-         */
-
-        const tabSession =
-            sessionStorage.getItem(
-                TAB_SESSION_KEY
-            );
-
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.auth.getSession();
-
-
-        if (
-            error
-        ) {
-
-            console.error(
-                "Session error:",
-                error
-            );
-
-
-            showGuestState();
-
-
-            setStatus(
-                "Authentication error"
-            );
-
-
-            return;
-        }
-
-
-        /*
-         * No Supabase session.
-         */
-
-        if (
-            !data?.session
-        ) {
-
-            sessionStorage.removeItem(
-                TAB_SESSION_KEY
-            );
-
-            sessionStorage.removeItem(
-                SESSION_ID_KEY
-            );
-
-
-            showGuestState();
-
-            return;
-        }
-
-
-        const session =
-            data.session;
-
-
-        /*
-         * If this is a new browser tab, don't
-         * automatically trust the persisted Supabase
-         * session as a LabChat session.
-         *
-         * Instead, create a new LabChat session ID.
-         *
-         * The database RPC will determine whether
-         * the account is already active elsewhere.
-         */
-
-        if (
-            tabSession !==
-            TAB_SESSION_VALUE
-        ) {
-
-            console.log(
-                "New LabChat tab detected."
-            );
-
-
-            sessionStorage.removeItem(
-                SESSION_ID_KEY
-            );
-
-
-            getLabChatSessionId();
-
-        }
-
-
-        /*
-         * Check profile and claim the LabChat session.
-         */
-
-        const success =
-            await loadUserProfile(
-                session.user
-            );
-
-
-        if (
-            !success
-        ) {
-
-            /*
-             * If the session could not be restored,
-             * clear the persisted authentication so
-             * this page returns to Guest state.
-             */
-
-            try {
-
-                await supabaseClient.auth.signOut();
-
-            } catch (
-                signOutError
-            ) {
-
-                console.warn(
-                    "Restore sign-out failed:",
-                    signOutError
-                );
-
-            }
-
-
-            sessionStorage.removeItem(
-                TAB_SESSION_KEY
-            );
-
-            sessionStorage.removeItem(
-                SESSION_ID_KEY
-            );
-
-            stopSessionHeartbeat();
-
-            userSessionId =
-                null;
-
-
-            showGuestState();
-
-        }
-
-
-    } catch (
-        error
-    ) {
-
-        console.error(
-            "Session restore error:",
-            error
-        );
-
-
-        stopSessionHeartbeat();
-
-
-        showGuestState();
-
-
-        setStatus(
-            "Authentication error"
-        );
-
-    }
-}
-
-
-/* =========================================================
    LOAD USER PROFILE
-========================================================= */
+   ========================================================= */
 
 async function loadUserProfile(
     user
@@ -2348,21 +2321,12 @@ async function loadUserProfile(
 
         /*
          * ADMIN
-         *
-         * Admin sessions remain separate from
-         * normal LabChat user sessions.
          */
 
         if (
             data.role ===
             "admin"
         ) {
-
-            sessionStorage.setItem(
-                TAB_SESSION_KEY,
-                TAB_SESSION_VALUE
-            );
-
 
             sessionStorage.setItem(
                 ADMIN_TAB_SESSION_KEY,
@@ -2397,9 +2361,8 @@ async function loadUserProfile(
 
 
         /*
-         * Set the current user BEFORE calling
-         * claim_labchat_session(), because the
-         * database function uses auth.uid().
+         * Set the current user before the
+         * database RPC because the RPC uses auth.uid().
          */
 
         currentUser =
@@ -2411,14 +2374,7 @@ async function loadUserProfile(
 
 
         /*
-         * =================================================
-         * CLAIM SINGLE LABCHAT SESSION
-         * =================================================
-         *
-         * This is the important new security step.
-         *
-         * If another active computer owns this account,
-         * the database function returns false.
+         * Claim the single active LabChat session.
          */
 
         const sessionClaimed =
@@ -2458,14 +2414,8 @@ async function loadUserProfile(
 
 
         /*
-         * LabChat tab is now authorized.
+         * LabChat user is now authorized.
          */
-
-        sessionStorage.setItem(
-            TAB_SESSION_KEY,
-            TAB_SESSION_VALUE
-        );
-
 
         if (
             currentUserElement
@@ -2479,10 +2429,6 @@ async function loadUserProfile(
 
         closeLogin();
 
-
-        /*
-         * Start in CHAT mode after login.
-         */
 
         showChatScreen();
 
@@ -2549,14 +2495,13 @@ async function loadUserProfile(
 
 /* =========================================================
    SCREEN MANAGEMENT
-========================================================= */
+   ========================================================= */
+
 
 /*
  * Show Chat.
  *
- * IMPORTANT:
- * This does NOT authenticate or log in.
- * It only changes the visible screen.
+ * This function DOES NOT authenticate.
  */
 
 function showChatScreen() {
@@ -2575,8 +2520,7 @@ function showChatScreen() {
 /*
  * Show PDF.
  *
- * IMPORTANT:
- * This does NOT sign out.
+ * This function DOES NOT sign out.
  */
 
 function showPDFScreen() {
@@ -2594,7 +2538,7 @@ function showPDFScreen() {
 
 /* =========================================================
    GUEST STATE
-========================================================= */
+   ========================================================= */
 
 function showGuestState() {
 
@@ -2633,7 +2577,7 @@ function showGuestState() {
 
 /* =========================================================
    LOGIN UI
-========================================================= */
+   ========================================================= */
 
 function showLoginError(
     message
@@ -2728,7 +2672,7 @@ function getLoginErrorMessage(
 
 /* =========================================================
    CHAT CONTROLS
-========================================================= */
+   ========================================================= */
 
 function enableChatControls() {
 
@@ -2808,7 +2752,7 @@ function disableChatControls() {
 
 /* =========================================================
    MESSAGE CONTROLS
-========================================================= */
+   ========================================================= */
 
 function setupMessageControls() {
 
@@ -2845,7 +2789,7 @@ function setupMessageControls() {
 
 /* =========================================================
    LOAD MESSAGES
-========================================================= */
+   ========================================================= */
 
 async function loadMessages() {
 
@@ -2958,7 +2902,7 @@ async function loadMessages() {
 
 /* =========================================================
    REALTIME MESSAGES
-========================================================= */
+   ========================================================= */
 
 function subscribeToMessages() {
 
@@ -2973,7 +2917,6 @@ function subscribeToMessages() {
 
         realtimeChannel =
             null;
-
     }
 
 
@@ -3062,7 +3005,7 @@ function subscribeToMessages() {
 
 /* =========================================================
    PRESENCE
-========================================================= */
+   ========================================================= */
 
 function startPresence() {
 
@@ -3085,16 +3028,8 @@ function startPresence() {
 
         presenceChannel =
             null;
-
     }
 
-
-    /*
-     * Use the LabChat session ID as the presence key.
-     *
-     * This means the same active tab maintains
-     * the same presence identity during refreshes.
-     */
 
     const presenceKey =
         getLabChatSessionId();
@@ -3190,7 +3125,7 @@ function startPresence() {
 
 /* =========================================================
    ONLINE COUNT
-========================================================= */
+   ========================================================= */
 
 function updateOnlineCount() {
 
@@ -3251,7 +3186,7 @@ function updateOnlineCount() {
 
 /* =========================================================
    SEND MESSAGE
-========================================================= */
+   ========================================================= */
 
 async function handleMessageSubmit(
     event
@@ -3383,7 +3318,7 @@ async function handleMessageSubmit(
 
 /* =========================================================
    MESSAGE KEYBOARD
-========================================================= */
+   ========================================================= */
 
 function handleMessageKeydown(
     event
@@ -3438,7 +3373,7 @@ function handleMessageKeydown(
 
 /* =========================================================
    CODE MODE
-========================================================= */
+   ========================================================= */
 
 function toggleCodeMode() {
 
@@ -3486,7 +3421,7 @@ function toggleCodeMode() {
 
 /* =========================================================
    DISPLAY MESSAGE
-========================================================= */
+   ========================================================= */
 
 function addMessage(
     message
@@ -3500,10 +3435,6 @@ function addMessage(
         return;
     }
 
-
-    /*
-     * Ignore expired messages.
-     */
 
     const expires =
         new Date(
@@ -3600,7 +3531,7 @@ function addMessage(
 
 /* =========================================================
    NORMAL MESSAGE RENDER
-========================================================= */
+   ========================================================= */
 
 function renderNormalMessage(
     messageElement,
@@ -3712,7 +3643,7 @@ function renderNormalMessage(
 
 /* =========================================================
    CODE MESSAGE RENDER
-========================================================= */
+   ========================================================= */
 
 function renderCodeMessage(
     messageElement,
@@ -3786,7 +3717,7 @@ function renderCodeMessage(
 
 /* =========================================================
    MESSAGE EXPIRY
-========================================================= */
+   ========================================================= */
 
 function scheduleMessageRemoval(
     messageElement,
@@ -3884,7 +3815,7 @@ function clearMessageTimers() {
 
 /* =========================================================
    COPY BUTTON
-========================================================= */
+   ========================================================= */
 
 function createCopyButton(
     text,
@@ -3966,7 +3897,7 @@ function createCopyButton(
 
 /* =========================================================
    LINKIFY
-========================================================= */
+   ========================================================= */
 
 function linkify(
     element
@@ -4051,7 +3982,7 @@ function linkify(
 
 /* =========================================================
    TIME
-========================================================= */
+   ========================================================= */
 
 function formatTime(
     timestamp
@@ -4074,7 +4005,7 @@ function formatTime(
 
 /* =========================================================
    EMPTY STATE
-========================================================= */
+   ========================================================= */
 
 function showEmptyState() {
 
@@ -4150,7 +4081,7 @@ function removeEmptyState() {
 
 /* =========================================================
    STATUS
-========================================================= */
+   ========================================================= */
 
 function setStatus(
     status
@@ -4169,7 +4100,7 @@ function setStatus(
 
 /* =========================================================
    TEXTAREA AUTO RESIZE
-========================================================= */
+   ========================================================= */
 
 function autoResizeTextarea() {
 
@@ -4195,7 +4126,7 @@ function autoResizeTextarea() {
 
 /* =========================================================
    SCROLL CHAT
-========================================================= */
+   ========================================================= */
 
 function scrollToBottom() {
 
@@ -4212,24 +4143,13 @@ function scrollToBottom() {
 
 /* =========================================================
    KEYBOARD SHORTCUTS
-========================================================= */
+   ========================================================= */
 
 function setupKeyboardShortcuts() {
 
     document.addEventListener(
         "keydown",
         event => {
-
-            /*
-             * Do not react to shortcuts while the user
-             * is typing inside a text input, textarea,
-             * password field, or contenteditable element.
-             *
-             * EXCEPTION:
-             *
-             * Escape is still allowed because it is the
-             * main navigation shortcut.
-             */
 
             const target =
                 event.target;
@@ -4242,9 +4162,7 @@ function setupKeyboardShortcuts() {
 
 
             /*
-             * =================================================
              * CTRL + SHIFT + L
-             * =================================================
              *
              * Return to CHAT.
              */
@@ -4257,11 +4175,6 @@ function setupKeyboardShortcuts() {
 
                 event.preventDefault();
 
-
-                /*
-                 * Only allow returning to chat when
-                 * the current tab is authenticated.
-                 */
 
                 if (
                     currentUser &&
@@ -4288,26 +4201,14 @@ function setupKeyboardShortcuts() {
 
 
             /*
-             * =================================================
              * ESC
-             * =================================================
              *
-             * ESC NEVER SIGNS OUT.
-             *
-             * If login popup is open, close the popup.
-             *
-             * Otherwise, if the user is logged in,
-             * immediately switch to PDF.
+             * NEVER signs out.
              */
 
             if (
                 event.key === "Escape"
             ) {
-
-                /*
-                 * If login popup is currently open,
-                 * ESC simply closes it.
-                 */
 
                 if (
                     loginOverlayIsOpen()
@@ -4322,7 +4223,7 @@ function setupKeyboardShortcuts() {
 
 
                 /*
-                 * ESC from Chat → PDF.
+                 * Chat → PDF.
                  */
 
                 if (
@@ -4342,18 +4243,9 @@ function setupKeyboardShortcuts() {
                 }
 
 
-                /*
-                 * If already on PDF, ESC does nothing.
-                 */
-
                 return;
             }
 
-
-            /*
-             * Do not handle PDF arrow navigation
-             * while typing in an input.
-             */
 
             if (
                 isTypingField
@@ -4364,9 +4256,7 @@ function setupKeyboardShortcuts() {
 
 
             /*
-             * =================================================
-             * PDF NAVIGATION
-             * =================================================
+             * PDF navigation.
              */
 
             if (
@@ -4413,7 +4303,7 @@ function setupKeyboardShortcuts() {
 
 /* =========================================================
    LOGIN OVERLAY STATE
-========================================================= */
+   ========================================================= */
 
 function loginOverlayIsOpen() {
 
@@ -4428,13 +4318,12 @@ function loginOverlayIsOpen() {
 
 /* =========================================================
    SIGN OUT
-========================================================= */
+   ========================================================= */
 
 /*
- * This is the ONLY normal action that signs
- * the user out.
+ * This is the normal user logout action.
  *
- * ESC does NOT call this function.
+ * ESC DOES NOT SIGN OUT.
  */
 
 async function leaveChat() {
@@ -4445,39 +4334,30 @@ async function leaveChat() {
 
 
     /*
-     * Stop realtime first.
-     */
-
-    await cleanupRealtime();
-
-
-    /*
-     * Release the database session.
-     *
-     * IMPORTANT:
-     * currentUser must still exist here because
-     * releaseLabChatSession() needs its user ID.
+     * Release database session before clearing
+     * currentUser.
      */
 
     await releaseLabChatSession();
 
 
     /*
-     * Remove local authorization.
+     * Stop realtime.
+     */
+
+    await cleanupRealtime();
+
+
+    /*
+     * Clear local authorization markers.
      */
 
     sessionStorage.removeItem(
-        TAB_SESSION_KEY
+        SESSION_ID_KEY
     );
-
 
     sessionStorage.removeItem(
         ADMIN_TAB_SESSION_KEY
-    );
-
-
-    sessionStorage.removeItem(
-        SESSION_ID_KEY
     );
 
 
@@ -4485,9 +4365,18 @@ async function leaveChat() {
         null;
 
 
+    /*
+     * Sign out from Supabase.
+     */
+
     try {
 
-        await supabaseClient.auth.signOut();
+        await supabaseClient.auth.signOut(
+            {
+                scope:
+                    "local"
+            }
+        );
 
 
     } catch (
@@ -4500,12 +4389,28 @@ async function leaveChat() {
         );
 
     }
+
+
+    /*
+     * Reset UI.
+     */
+
+    await resetLabChat(
+        false
+    );
+
+
+    /*
+     * Show login again.
+     */
+
+    openLogin();
 }
 
 
 /* =========================================================
    REALTIME CLEANUP
-========================================================= */
+   ========================================================= */
 
 async function cleanupRealtime() {
 
@@ -4520,7 +4425,6 @@ async function cleanupRealtime() {
         try {
 
             await presenceChannel.untrack();
-
 
         } catch (
             error
@@ -4555,7 +4459,6 @@ async function cleanupRealtime() {
 
         presenceChannel =
             null;
-
     }
 
 
@@ -4588,14 +4491,13 @@ async function cleanupRealtime() {
 
         realtimeChannel =
             null;
-
     }
 }
 
 
 /* =========================================================
    RESET AFTER SIGN OUT
-========================================================= */
+   ========================================================= */
 
 async function resetLabChat(
     showLogin = true
@@ -4607,8 +4509,6 @@ async function resetLabChat(
 
 
     /*
-     * IMPORTANT:
-     *
      * Release the database session BEFORE
      * clearing currentUser.
      */
@@ -4623,17 +4523,12 @@ async function resetLabChat(
 
 
     sessionStorage.removeItem(
-        TAB_SESSION_KEY
+        SESSION_ID_KEY
     );
 
 
     sessionStorage.removeItem(
         ADMIN_TAB_SESSION_KEY
-    );
-
-
-    sessionStorage.removeItem(
-        SESSION_ID_KEY
     );
 
 
@@ -4725,13 +4620,6 @@ async function resetLabChat(
     );
 
 
-    /*
-     * Show login popup only when requested.
-     *
-     * This prevents unnecessary login popups during
-     * initial page loading.
-     */
-
     if (
         showLogin
     ) {
@@ -4744,7 +4632,7 @@ async function resetLabChat(
 
 /* =========================================================
    DEBOUNCE
-========================================================= */
+   ========================================================= */
 
 function debounce(
     callback,
@@ -4782,7 +4670,7 @@ function debounce(
 
 /* =========================================================
    PAGE CLEANUP
-========================================================= */
+   ========================================================= */
 
 window.addEventListener(
     "beforeunload",
@@ -4796,32 +4684,18 @@ window.addEventListener(
 
 
         /*
-         * Stop the heartbeat locally.
+         * Stop heartbeat locally.
          */
 
         stopSessionHeartbeat();
 
 
         /*
-         * We intentionally DO NOT attempt to delete
-         * active_sessions here.
+         * Do NOT attempt asynchronous Supabase
+         * deletion here.
          *
-         * beforeunload is not reliable for asynchronous
-         * Supabase requests.
-         *
-         * Instead:
-         *
-         * 1. Normal logout explicitly deletes the row.
-         *
-         * 2. A browser crash/tab close stops the heartbeat.
-         *
-         * 3. After 60 seconds, claim_labchat_session()
-         *    considers the old session inactive.
-         *
-         * 4. Another computer can then claim the account.
-         *
-         * Supabase Realtime presence will also disappear
-         * when the connection closes.
+         * The database heartbeat system handles
+         * crashed/closed sessions.
          */
 
         if (
@@ -4847,3 +4721,4 @@ window.addEventListener(
 
     }
 );
+```
