@@ -55,31 +55,58 @@ let presenceChannel = null;
 
 let isCodeMode = false;
 
-let userSessionId =
-    crypto.randomUUID();
 
+/* =========================================================
+   LABCHAT SESSION STATE
+   ========================================================= */
 
 /*
- * This flag belongs to THIS browser tab.
+ * IMPORTANT AUTHENTICATION CHANGE
  *
- * sessionStorage survives refreshes in the same tab,
- * but disappears when the tab is closed.
+ * LabChat does NOT automatically restore a previous
+ * Supabase login when the website is opened.
  *
- * Supabase's auth session can normally survive a
- * browser/tab close, so we use this separate flag
- * to determine whether this particular tab is still
- * authorized to restore the previous LabChat session.
+ * Every fresh page load starts as Guest.
+ *
+ * Supabase itself may still have a persisted auth
+ * session in localStorage, so initializeLabChat()
+ * explicitly clears that persisted session before
+ * allowing the application to continue.
+ *
+ * Therefore:
+ *
+ * OPEN SITE
+ *      ↓
+ * GUEST
+ *      ↓
+ * USER ENTERS EMAIL + PASSWORD
+ *      ↓
+ * LOGIN
+ *
+ * No automatic login.
  */
 
-const TAB_SESSION_KEY =
-    "labchat_tab_session";
 
-const TAB_SESSION_VALUE =
-    "active";
+/*
+ * LabChat account session ID.
+ *
+ * This is only used for the single-device session
+ * protection and presence system.
+ */
+
+const SESSION_ID_KEY =
+    "labchat_session_id";
+
+const SESSION_HEARTBEAT_INTERVAL =
+    20 * 1000;
+
+let userSessionId = null;
+
+let sessionHeartbeatTimer = null;
 
 
 /*
- * Admin tab session.
+ * Admin session marker.
  */
 
 const ADMIN_TAB_SESSION_KEY =
@@ -328,17 +355,20 @@ async function initializeLabChat() {
 
 
     /*
-     * Restore authentication.
+     * IMPORTANT:
      *
-     * The tab-session check is performed
-     * inside restoreSession().
+     * DO NOT restore the previous Supabase
+     * authentication session.
+     *
+     * Instead, clear any persisted local
+     * authentication state and start as Guest.
      */
 
-    await restoreSession();
+    await startFreshGuestSession();
 
 
     /*
-     * Listen for authentication changes.
+     * Listen for future authentication changes.
      */
 
     setupAuthListener();
@@ -346,6 +376,135 @@ async function initializeLabChat() {
 
     console.log(
         "LabChat initialization complete."
+    );
+}
+
+
+/* =========================================================
+   START FRESH GUEST SESSION
+   ========================================================= */
+
+/*
+ * This is the main fix for the old auto-login problem.
+ *
+ * Supabase Auth normally persists sessions in localStorage.
+ *
+ * That means:
+ *
+ *     signIn()
+ *          ↓
+ *     browser stores session
+ *          ↓
+ *     site reopened
+ *          ↓
+ *     getSession()
+ *          ↓
+ *     OLD USER AUTOMATICALLY LOGGED IN
+ *
+ * We explicitly sign out on every page load.
+ *
+ * The user must therefore enter their credentials again.
+ */
+
+async function startFreshGuestSession() {
+
+    console.log(
+        "Starting LabChat as Guest..."
+    );
+
+
+    /*
+     * Stop any local LabChat state.
+     */
+
+    stopSessionHeartbeat();
+
+    await cleanupRealtime();
+
+    clearMessageTimers();
+
+
+    /*
+     * Remove LabChat's own session markers.
+     */
+
+    sessionStorage.removeItem(
+        SESSION_ID_KEY
+    );
+
+    sessionStorage.removeItem(
+        ADMIN_TAB_SESSION_KEY
+    );
+
+
+    userSessionId =
+        null;
+
+
+    currentUser =
+        null;
+
+    currentProfile =
+        null;
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Clear the persisted Supabase Auth session.
+     *
+     * This prevents a previous login from being
+     * automatically restored.
+     */
+
+    try {
+
+        const {
+            error
+        } =
+            await supabaseClient.auth.signOut(
+                {
+                    scope: "local"
+                }
+            );
+
+
+        if (
+            error
+        ) {
+
+            console.warn(
+                "Could not clear previous Supabase session:",
+                error
+            );
+
+        }
+
+    } catch (
+        error
+    ) {
+
+        console.warn(
+            "Unexpected auth cleanup error:",
+            error
+        );
+
+    }
+
+
+    /*
+     * Explicitly put the UI into Guest state.
+     */
+
+    showGuestState();
+
+    setStatus(
+        "Ready"
+    );
+
+
+    console.log(
+        "LabChat is ready. Login required."
     );
 }
 
@@ -396,8 +555,8 @@ function setupAuthListener() {
             ) {
 
                 /*
-                 * Do not repeatedly load the
-                 * same profile.
+                 * Do not repeatedly load the same
+                 * profile.
                  */
 
                 if (
@@ -418,7 +577,367 @@ function setupAuthListener() {
 
         }
     );
+}
 
+
+/* =========================================================
+   LABCHAT SESSION ID
+   ========================================================= */
+
+function getLabChatSessionId() {
+
+    let sessionId =
+        sessionStorage.getItem(
+            SESSION_ID_KEY
+        );
+
+
+    /*
+     * Create a new ID when this tab does not
+     * already have one.
+     */
+
+    if (
+        !sessionId
+    ) {
+
+        sessionId =
+            crypto.randomUUID();
+
+
+        sessionStorage.setItem(
+            SESSION_ID_KEY,
+            sessionId
+        );
+
+    }
+
+
+    userSessionId =
+        sessionId;
+
+
+    return sessionId;
+}
+
+
+/* =========================================================
+   CLAIM LABCHAT SESSION
+   ========================================================= */
+
+async function claimLabChatSession() {
+
+    if (
+        !currentUser
+    ) {
+
+        return false;
+    }
+
+
+    const sessionId =
+        getLabChatSessionId();
+
+
+    console.log(
+        "Claiming LabChat session:",
+        sessionId
+    );
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.rpc(
+                "claim_labchat_session",
+                {
+                    p_session_id:
+                        sessionId
+                }
+            );
+
+
+        if (
+            error
+        ) {
+
+            console.error(
+                "Session claim error:",
+                error
+            );
+
+            return false;
+        }
+
+
+        /*
+         * true =
+         * session successfully claimed
+         *
+         * false =
+         * another active computer owns it
+         */
+
+        if (
+            data !== true
+        ) {
+
+            console.warn(
+                "LabChat account is already active elsewhere."
+            );
+
+            return false;
+        }
+
+
+        startSessionHeartbeat();
+
+
+        console.log(
+            "LabChat session claimed successfully."
+        );
+
+
+        return true;
+
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "Unexpected session claim error:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+/* =========================================================
+   SESSION HEARTBEAT
+   ========================================================= */
+
+function startSessionHeartbeat() {
+
+    stopSessionHeartbeat();
+
+
+    if (
+        !currentUser
+    ) {
+
+        return;
+    }
+
+
+    updateSessionHeartbeat();
+
+
+    sessionHeartbeatTimer =
+        setInterval(
+            updateSessionHeartbeat,
+            SESSION_HEARTBEAT_INTERVAL
+        );
+}
+
+
+/* =========================================================
+   UPDATE SESSION HEARTBEAT
+   ========================================================= */
+
+async function updateSessionHeartbeat() {
+
+    if (
+        !currentUser
+    ) {
+
+        return;
+    }
+
+
+    const sessionId =
+        getLabChatSessionId();
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient
+                .from("active_sessions")
+                .update(
+                    {
+                        last_seen:
+                            new Date().toISOString()
+                    }
+                )
+                .eq(
+                    "user_id",
+                    currentUser.id
+                )
+                .eq(
+                    "session_id",
+                    sessionId
+                )
+                .select(
+                    "user_id"
+                );
+
+
+        if (
+            error
+        ) {
+
+            console.warn(
+                "Session heartbeat failed:",
+                error
+            );
+
+            return;
+        }
+
+
+        /*
+         * If no row was updated, the session
+         * may have been removed or replaced.
+         */
+
+        if (
+            !data ||
+            data.length === 0
+        ) {
+
+            console.warn(
+                "LabChat session is no longer active."
+            );
+
+
+            setStatus(
+                "Session expired"
+            );
+
+
+            stopSessionHeartbeat();
+
+        }
+
+    } catch (
+        error
+    ) {
+
+        console.warn(
+            "Unexpected heartbeat error:",
+            error
+        );
+
+    }
+}
+
+
+/* =========================================================
+   STOP SESSION HEARTBEAT
+   ========================================================= */
+
+function stopSessionHeartbeat() {
+
+    if (
+        sessionHeartbeatTimer
+    ) {
+
+        clearInterval(
+            sessionHeartbeatTimer
+        );
+
+
+        sessionHeartbeatTimer =
+            null;
+    }
+}
+
+
+/* =========================================================
+   RELEASE LABCHAT SESSION
+   ========================================================= */
+
+async function releaseLabChatSession() {
+
+    stopSessionHeartbeat();
+
+
+    if (
+        !currentUser
+    ) {
+
+        return;
+    }
+
+
+    const sessionId =
+        sessionStorage.getItem(
+            SESSION_ID_KEY
+        );
+
+
+    if (
+        !sessionId
+    ) {
+
+        return;
+    }
+
+
+    try {
+
+        const {
+            error
+        } =
+            await supabaseClient
+                .from("active_sessions")
+                .delete()
+                .eq(
+                    "user_id",
+                    currentUser.id
+                )
+                .eq(
+                    "session_id",
+                    sessionId
+                );
+
+
+        if (
+            error
+        ) {
+
+            console.warn(
+                "Session release failed:",
+                error
+            );
+
+        } else {
+
+            console.log(
+                "LabChat session released."
+            );
+
+        }
+
+    } catch (
+        error
+    ) {
+
+        console.warn(
+            "Unexpected session release error:",
+            error
+        );
+
+    }
 }
 
 
@@ -452,6 +971,7 @@ async function initializePDFViewer() {
 
     pdfInitialized =
         true;
+
 
     showPDFLoading(
         true
@@ -517,6 +1037,7 @@ async function initializePDFViewer() {
 
         await renderAllPDFPages();
 
+
         setupPDFPageObserver();
 
 
@@ -559,7 +1080,6 @@ async function initializePDFViewer() {
         );
 
     }
-
 }
 
 
@@ -653,7 +1173,6 @@ function setupPDFControls() {
             200
         )
     );
-
 }
 
 
@@ -756,7 +1275,6 @@ async function renderAllPDFPages() {
 
         }
     );
-
 }
 
 
@@ -936,7 +1454,6 @@ async function renderSinglePDFPage(
 
 
     page.cleanup();
-
 }
 
 
@@ -1047,7 +1564,6 @@ function setupPDFPageObserver() {
 
             }
         );
-
 }
 
 
@@ -1116,7 +1632,6 @@ function updatePDFCurrentPageFromScroll() {
 
 
                     return;
-
                 }
 
 
@@ -1158,7 +1673,6 @@ function updatePDFCurrentPageFromScroll() {
         updatePDFPageNumber();
 
     }
-
 }
 
 
@@ -1219,7 +1733,6 @@ function goToPDFPage(
                 "start"
         }
     );
-
 }
 
 
@@ -1234,7 +1747,6 @@ function getPDFPageElement(
     return pdfPages?.querySelector(
         `.pdf-page[data-page-number="${pageNumber}"]`
     ) || null;
-
 }
 
 
@@ -1278,7 +1790,6 @@ function updatePDFPageNumber() {
             pdfCurrentPage >= total;
 
     }
-
 }
 
 
@@ -1325,7 +1836,6 @@ async function changePDFZoom(
 
 
     setupPDFPageObserver();
-
 }
 
 
@@ -1354,7 +1864,6 @@ async function fitPDFToWidth() {
 
 
     setupPDFPageObserver();
-
 }
 
 
@@ -1378,7 +1887,6 @@ function updatePDFZoomDisplay() {
             : `${Math.round(
                 pdfZoom * 100
             )}%`;
-
 }
 
 
@@ -1394,7 +1902,6 @@ function showPDFLoading(
         "hidden",
         !show
     );
-
 }
 
 
@@ -1415,7 +1922,6 @@ function showPDFError(
     pdfError?.classList.remove(
         "hidden"
     );
-
 }
 
 
@@ -1424,7 +1930,6 @@ function hidePDFError() {
     pdfError?.classList.add(
         "hidden"
     );
-
 }
 
 
@@ -1461,7 +1966,6 @@ function setupLoginControls() {
 
         }
     );
-
 }
 
 
@@ -1495,7 +1999,6 @@ function openLogin() {
         },
         50
     );
-
 }
 
 
@@ -1508,7 +2011,6 @@ function closeLogin() {
     loginOverlay?.classList.add(
         "hidden"
     );
-
 }
 
 
@@ -1575,6 +2077,36 @@ async function handleLogin(
 
     try {
 
+        /*
+         * Make absolutely sure there is no
+         * previous local authentication session.
+         */
+
+        try {
+
+            await supabaseClient.auth.signOut(
+                {
+                    scope:
+                        "local"
+                }
+            );
+
+        } catch (
+            clearError
+        ) {
+
+            console.warn(
+                "Previous session cleanup warning:",
+                clearError
+            );
+
+        }
+
+
+        /*
+         * Actual login.
+         */
+
         const {
             data,
             error
@@ -1622,15 +2154,9 @@ async function handleLogin(
 
 
         /*
-         * A successful login creates/refreshes
-         * the current TAB session.
+         * Validate profile and claim the
+         * LabChat single-device session.
          */
-
-        sessionStorage.setItem(
-            TAB_SESSION_KEY,
-            TAB_SESSION_VALUE
-        );
-
 
         const success =
             await loadUserProfile(
@@ -1642,11 +2168,42 @@ async function handleLogin(
             !success
         ) {
 
-            await supabaseClient.auth.signOut();
+            /*
+             * Never leave an invalid login
+             * authenticated.
+             */
+
+            try {
+
+                await supabaseClient.auth.signOut();
+
+            } catch (
+                signOutError
+            ) {
+
+                console.warn(
+                    "Login cleanup failed:",
+                    signOutError
+                );
+
+            }
+
 
             sessionStorage.removeItem(
-                TAB_SESSION_KEY
+                SESSION_ID_KEY
             );
+
+            sessionStorage.removeItem(
+                ADMIN_TAB_SESSION_KEY
+            );
+
+
+            stopSessionHeartbeat();
+
+
+            userSessionId =
+                null;
+
 
             return;
         }
@@ -1678,236 +2235,6 @@ async function handleLogin(
         );
 
     }
-
-}
-
-
-/* =========================================================
-   RESTORE SESSION
-   ========================================================= */
-
-async function restoreSession() {
-
-    try {
-
-        /*
-         * Check whether this TAB already has an
-         * active LabChat session.
-         *
-         * sessionStorage survives refresh.
-         * sessionStorage disappears after tab close.
-         */
-
-        const tabSession =
-            sessionStorage.getItem(
-                TAB_SESSION_KEY
-            );
-
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.auth.getSession();
-
-
-        if (
-            error
-        ) {
-
-            console.error(
-                "Session error:",
-                error
-            );
-
-
-            showGuestState();
-
-
-            setStatus(
-                "Authentication error"
-            );
-
-
-            return;
-        }
-
-
-        /*
-         * No Supabase session.
-         */
-
-        if (
-            !data?.session
-        ) {
-
-            sessionStorage.removeItem(
-                TAB_SESSION_KEY
-            );
-
-
-            showGuestState();
-
-            return;
-        }
-
-
-        const session =
-            data.session;
-
-
-        /*
-         * IMPORTANT:
-         *
-         * If Supabase remembers the login but this
-         * particular tab has no sessionStorage flag,
-         * this is treated as a new tab/return visit.
-         *
-         * We sign out the Supabase session and require
-         * a fresh login.
-         */
-
-        if (
-            tabSession !==
-            TAB_SESSION_VALUE
-        ) {
-
-            console.log(
-                "No active LabChat tab session. Requiring login."
-            );
-
-
-            await supabaseClient.auth.signOut();
-
-
-            sessionStorage.removeItem(
-                TAB_SESSION_KEY
-            );
-
-
-            showGuestState();
-
-
-            return;
-        }
-
-
-        /*
-         * Check the user's profile/role.
-         */
-
-        const {
-            data: profile,
-            error: profileError
-        } =
-            await supabaseClient
-                .from("profiles")
-                .select(
-                    "role, is_active"
-                )
-                .eq(
-                    "id",
-                    session.user.id
-                )
-                .maybeSingle();
-
-
-        if (
-            profileError
-        ) {
-
-            console.error(
-                "Profile check error:",
-                profileError
-            );
-
-
-            await supabaseClient.auth.signOut();
-
-
-            sessionStorage.removeItem(
-                TAB_SESSION_KEY
-            );
-
-
-            showGuestState();
-
-
-            return;
-        }
-
-
-        /*
-         * ADMIN SESSION
-         */
-
-        if (
-            profile?.role ===
-            "admin"
-        ) {
-
-            const adminTabSession =
-                sessionStorage.getItem(
-                    ADMIN_TAB_SESSION_KEY
-                );
-
-
-            if (
-                adminTabSession !==
-                "true"
-            ) {
-
-                /*
-                 * The admin session is not valid
-                 * for this tab anymore.
-                 */
-
-                await supabaseClient.auth.signOut();
-
-
-                sessionStorage.removeItem(
-                    ADMIN_TAB_SESSION_KEY
-                );
-
-
-                sessionStorage.removeItem(
-                    TAB_SESSION_KEY
-                );
-
-
-                showGuestState();
-
-
-                return;
-            }
-
-        }
-
-
-        await loadUserProfile(
-            session.user
-        );
-
-
-    } catch (
-        error
-    ) {
-
-        console.error(
-            "Session restore error:",
-            error
-        );
-
-
-        showGuestState();
-
-
-        setStatus(
-            "Authentication error"
-        );
-
-    }
-
 }
 
 
@@ -2001,12 +2328,6 @@ async function loadUserProfile(
         ) {
 
             sessionStorage.setItem(
-                TAB_SESSION_KEY,
-                TAB_SESSION_VALUE
-            );
-
-
-            sessionStorage.setItem(
                 ADMIN_TAB_SESSION_KEY,
                 "true"
             );
@@ -2038,6 +2359,11 @@ async function loadUserProfile(
         }
 
 
+        /*
+         * Set the current user before the
+         * database RPC because the RPC uses auth.uid().
+         */
+
         currentUser =
             user;
 
@@ -2047,15 +2373,48 @@ async function loadUserProfile(
 
 
         /*
-         * Make sure the tab session exists
-         * after successful authentication.
+         * Claim the single active LabChat session.
          */
 
-        sessionStorage.setItem(
-            TAB_SESSION_KEY,
-            TAB_SESSION_VALUE
-        );
+        const sessionClaimed =
+            await claimLabChatSession();
 
+
+        if (
+            !sessionClaimed
+        ) {
+
+            console.warn(
+                "Could not claim LabChat session."
+            );
+
+
+            currentUser =
+                null;
+
+
+            currentProfile =
+                null;
+
+
+            stopSessionHeartbeat();
+
+
+            showGuestState();
+
+
+            showLoginError(
+                "This account is already active on another computer. Please wait until that session becomes inactive."
+            );
+
+
+            return false;
+        }
+
+
+        /*
+         * LabChat user is now authorized.
+         */
 
         if (
             currentUserElement
@@ -2069,10 +2428,6 @@ async function loadUserProfile(
 
         closeLogin();
 
-
-        /*
-         * Start in CHAT mode after login.
-         */
 
         showChatScreen();
 
@@ -2116,6 +2471,17 @@ async function loadUserProfile(
         );
 
 
+        currentUser =
+            null;
+
+
+        currentProfile =
+            null;
+
+
+        stopSessionHeartbeat();
+
+
         showLoginError(
             "Could not load your LabChat profile."
         );
@@ -2123,7 +2489,6 @@ async function loadUserProfile(
 
         return false;
     }
-
 }
 
 
@@ -2135,9 +2500,7 @@ async function loadUserProfile(
 /*
  * Show Chat.
  *
- * IMPORTANT:
- * This does NOT authenticate or log in.
- * It only changes the visible screen.
+ * This function DOES NOT authenticate.
  */
 
 function showChatScreen() {
@@ -2150,15 +2513,13 @@ function showChatScreen() {
     chatScreen?.classList.remove(
         "hidden"
     );
-
 }
 
 
 /*
  * Show PDF.
  *
- * IMPORTANT:
- * This does NOT sign out.
+ * This function DOES NOT sign out.
  */
 
 function showPDFScreen() {
@@ -2171,7 +2532,6 @@ function showPDFScreen() {
     pdfViewerScreen?.classList.remove(
         "hidden"
     );
-
 }
 
 
@@ -2180,6 +2540,9 @@ function showPDFScreen() {
    ========================================================= */
 
 function showGuestState() {
+
+    stopSessionHeartbeat();
+
 
     currentUser =
         null;
@@ -2208,7 +2571,6 @@ function showGuestState() {
     setStatus(
         "Ready"
     );
-
 }
 
 
@@ -2228,7 +2590,6 @@ function showLoginError(
             message;
 
     }
-
 }
 
 
@@ -2242,7 +2603,6 @@ function clearLoginError() {
             "";
 
     }
-
 }
 
 
@@ -2266,7 +2626,6 @@ function setLoginLoading(
         loading
             ? "Logging in..."
             : "Login";
-
 }
 
 
@@ -2307,7 +2666,6 @@ function getLoginErrorMessage(
         message ||
         "Unable to login."
     );
-
 }
 
 
@@ -2351,7 +2709,6 @@ function enableChatControls() {
             false;
 
     }
-
 }
 
 
@@ -2389,7 +2746,6 @@ function disableChatControls() {
             true;
 
     }
-
 }
 
 
@@ -2427,7 +2783,6 @@ function setupMessageControls() {
         "click",
         leaveChat
     );
-
 }
 
 
@@ -2541,7 +2896,6 @@ async function loadMessages() {
         );
 
     }
-
 }
 
 
@@ -2562,7 +2916,6 @@ function subscribeToMessages() {
 
         realtimeChannel =
             null;
-
     }
 
 
@@ -2646,7 +2999,6 @@ function subscribeToMessages() {
 
                 }
             );
-
 }
 
 
@@ -2675,8 +3027,11 @@ function startPresence() {
 
         presenceChannel =
             null;
-
     }
+
+
+    const presenceKey =
+        getLabChatSessionId();
 
 
     presenceChannel =
@@ -2688,7 +3043,7 @@ function startPresence() {
                     presence:
                     {
                         key:
-                            userSessionId
+                            presenceKey
                     }
                 }
             }
@@ -2740,7 +3095,10 @@ function startPresence() {
                                 currentProfile.username,
 
                             user_id:
-                                currentProfile.id
+                                currentProfile.id,
+
+                            session_id:
+                                presenceKey
                         }
                     );
 
@@ -2761,7 +3119,6 @@ function startPresence() {
 
             }
         );
-
 }
 
 
@@ -2823,7 +3180,6 @@ function updateOnlineCount() {
                 ? "user"
                 : "users"
         } online`;
-
 }
 
 
@@ -2956,7 +3312,6 @@ async function handleMessageSubmit(
         }
 
     }
-
 }
 
 
@@ -3012,7 +3367,6 @@ function handleMessageKeydown(
         messageForm?.requestSubmit();
 
     }
-
 }
 
 
@@ -3061,7 +3415,6 @@ function toggleCodeMode() {
         messageInput.focus();
 
     }
-
 }
 
 
@@ -3081,10 +3434,6 @@ function addMessage(
         return;
     }
 
-
-    /*
-     * Ignore expired messages.
-     */
 
     const expires =
         new Date(
@@ -3176,7 +3525,6 @@ function addMessage(
         message.id,
         expires
     );
-
 }
 
 
@@ -3289,7 +3637,6 @@ function renderNormalMessage(
     messageElement.appendChild(
         actions
     );
-
 }
 
 
@@ -3364,7 +3711,6 @@ function renderCodeMessage(
     messageElement.appendChild(
         codeContent
     );
-
 }
 
 
@@ -3446,7 +3792,6 @@ function scheduleMessageRemoval(
         messageId,
         timer
     );
-
 }
 
 
@@ -3464,7 +3809,6 @@ function clearMessageTimers() {
 
 
     messageTimers.clear();
-
 }
 
 
@@ -3547,7 +3891,6 @@ function createCopyButton(
 
 
     return button;
-
 }
 
 
@@ -3633,7 +3976,6 @@ function linkify(
 
         }
     );
-
 }
 
 
@@ -3657,7 +3999,6 @@ function formatTime(
                 "2-digit"
         }
     );
-
 }
 
 
@@ -3724,7 +4065,6 @@ function showEmptyState() {
     messagesContainer.appendChild(
         empty
     );
-
 }
 
 
@@ -3735,7 +4075,6 @@ function removeEmptyState() {
             ".empty-state"
         )
         ?.remove();
-
 }
 
 
@@ -3755,7 +4094,6 @@ function setStatus(
             status;
 
     }
-
 }
 
 
@@ -3782,7 +4120,6 @@ function autoResizeTextarea() {
             messageInput.scrollHeight,
             220
         ) + "px";
-
 }
 
 
@@ -3800,7 +4137,6 @@ function scrollToBottom() {
             messagesContainer.scrollHeight;
 
     }
-
 }
 
 
@@ -3814,17 +4150,6 @@ function setupKeyboardShortcuts() {
         "keydown",
         event => {
 
-            /*
-             * Do not react to shortcuts while the user
-             * is typing inside a text input, textarea,
-             * password field, or contenteditable element.
-             *
-             * EXCEPTION:
-             *
-             * Escape is still allowed because it is the
-             * main navigation shortcut.
-             */
-
             const target =
                 event.target;
 
@@ -3836,16 +4161,9 @@ function setupKeyboardShortcuts() {
 
 
             /*
-             * =================================================
              * CTRL + SHIFT + L
-             * =================================================
              *
              * Return to CHAT.
-             *
-             * IMPORTANT:
-             *
-             * This does NOT call openLogin().
-             * This does NOT sign out.
              */
 
             if (
@@ -3856,11 +4174,6 @@ function setupKeyboardShortcuts() {
 
                 event.preventDefault();
 
-
-                /*
-                 * Only allow returning to chat when
-                 * the current tab is authenticated.
-                 */
 
                 if (
                     currentUser &&
@@ -3877,11 +4190,6 @@ function setupKeyboardShortcuts() {
 
                 } else {
 
-                    /*
-                     * If there is no authenticated user,
-                     * login is required.
-                     */
-
                     openLogin();
 
                 }
@@ -3892,26 +4200,14 @@ function setupKeyboardShortcuts() {
 
 
             /*
-             * =================================================
              * ESC
-             * =================================================
              *
-             * ESC NEVER SIGNS OUT.
-             *
-             * If login popup is open, close the popup.
-             *
-             * Otherwise, if the user is logged in,
-             * immediately switch to PDF.
+             * NEVER signs out.
              */
 
             if (
                 event.key === "Escape"
             ) {
-
-                /*
-                 * If login popup is currently open,
-                 * ESC simply closes it.
-                 */
 
                 if (
                     loginOverlayIsOpen()
@@ -3926,7 +4222,7 @@ function setupKeyboardShortcuts() {
 
 
                 /*
-                 * ESC from Chat → PDF.
+                 * Chat → PDF.
                  */
 
                 if (
@@ -3946,18 +4242,9 @@ function setupKeyboardShortcuts() {
                 }
 
 
-                /*
-                 * If already on PDF, ESC does nothing.
-                 */
-
                 return;
             }
 
-
-            /*
-             * Do not handle PDF arrow navigation
-             * while typing in an input.
-             */
 
             if (
                 isTypingField
@@ -3968,9 +4255,7 @@ function setupKeyboardShortcuts() {
 
 
             /*
-             * =================================================
-             * PDF NAVIGATION
-             * =================================================
+             * PDF navigation.
              */
 
             if (
@@ -4012,7 +4297,6 @@ function setupKeyboardShortcuts() {
 
         }
     );
-
 }
 
 
@@ -4028,7 +4312,6 @@ function loginOverlayIsOpen() {
             "hidden"
         )
     );
-
 }
 
 
@@ -4037,9 +4320,9 @@ function loginOverlayIsOpen() {
    ========================================================= */
 
 /*
- * This is the ONLY normal action that signs the user out.
+ * This is the normal user logout action.
  *
- * ESC does NOT call this function.
+ * ESC DOES NOT SIGN OUT.
  */
 
 async function leaveChat() {
@@ -4049,26 +4332,50 @@ async function leaveChat() {
     );
 
 
+    /*
+     * Release database session before clearing
+     * currentUser.
+     */
+
+    await releaseLabChatSession();
+
+
+    /*
+     * Stop realtime.
+     */
+
     await cleanupRealtime();
 
 
     /*
-     * Remove our tab authorization.
+     * Clear local authorization markers.
      */
 
     sessionStorage.removeItem(
-        TAB_SESSION_KEY
+        SESSION_ID_KEY
     );
-
 
     sessionStorage.removeItem(
         ADMIN_TAB_SESSION_KEY
     );
 
 
+    userSessionId =
+        null;
+
+
+    /*
+     * Sign out from Supabase.
+     */
+
     try {
 
-        await supabaseClient.auth.signOut();
+        await supabaseClient.auth.signOut(
+            {
+                scope:
+                    "local"
+            }
+        );
 
 
     } catch (
@@ -4082,6 +4389,21 @@ async function leaveChat() {
 
     }
 
+
+    /*
+     * Reset UI.
+     */
+
+    await resetLabChat(
+        false
+    );
+
+
+    /*
+     * Show login again.
+     */
+
+    openLogin();
 }
 
 
@@ -4102,7 +4424,6 @@ async function cleanupRealtime() {
         try {
 
             await presenceChannel.untrack();
-
 
         } catch (
             error
@@ -4137,7 +4458,6 @@ async function cleanupRealtime() {
 
         presenceChannel =
             null;
-
     }
 
 
@@ -4170,9 +4490,7 @@ async function cleanupRealtime() {
 
         realtimeChannel =
             null;
-
     }
-
 }
 
 
@@ -4189,6 +4507,14 @@ async function resetLabChat(
     );
 
 
+    /*
+     * Release the database session BEFORE
+     * clearing currentUser.
+     */
+
+    await releaseLabChatSession();
+
+
     await cleanupRealtime();
 
 
@@ -4196,13 +4522,17 @@ async function resetLabChat(
 
 
     sessionStorage.removeItem(
-        TAB_SESSION_KEY
+        SESSION_ID_KEY
     );
 
 
     sessionStorage.removeItem(
         ADMIN_TAB_SESSION_KEY
     );
+
+
+    userSessionId =
+        null;
 
 
     currentUser =
@@ -4289,13 +4619,6 @@ async function resetLabChat(
     );
 
 
-    /*
-     * Show login popup only when requested.
-     *
-     * This prevents unnecessary login popups during
-     * initial page loading.
-     */
-
     if (
         showLogin
     ) {
@@ -4303,7 +4626,6 @@ async function resetLabChat(
         openLogin();
 
     }
-
 }
 
 
@@ -4342,7 +4664,6 @@ function debounce(
             );
 
     };
-
 }
 
 
@@ -4362,20 +4683,18 @@ window.addEventListener(
 
 
         /*
-         * We intentionally DO NOT call
-         * supabaseClient.auth.signOut()
-         * here.
+         * Stop heartbeat locally.
+         */
+
+        stopSessionHeartbeat();
+
+
+        /*
+         * Do NOT attempt asynchronous Supabase
+         * deletion here.
          *
-         * The tab's sessionStorage disappears naturally
-         * when the tab closes.
-         *
-         * On the next visit, restoreSession() sees that
-         * TAB_SESSION_KEY is missing and signs out the
-         * persisted Supabase auth session before allowing
-         * access.
-         *
-         * Supabase presence also disappears automatically
-         * when the connection closes.
+         * The database heartbeat system handles
+         * crashed/closed sessions.
          */
 
         if (
