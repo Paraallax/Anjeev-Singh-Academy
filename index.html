@@ -23,370 +23,294 @@
 <body>
 
 
-<!-- =====================================================
-     LOGIN OVERLAY
-===================================================== -->
-
-<div
-    id="loginOverlay"
-    class="login-overlay hidden"
->
+    <!-- =========================================
+         PDF VIEWER
+    ========================================== -->
 
     <div
-        id="loginModal"
-        class="login-modal"
+        id="pdfApp"
+        class="pdf-app"
     >
 
-        <button
-            id="closeLoginButton"
-            class="login-close"
-            type="button"
-            aria-label="Close login"
-        >
-            ×
-        </button>
+
+        <!-- PDF TOOLBAR -->
+
+        <header class="pdf-toolbar">
 
 
-        <!-- LOGIN LOGO -->
+            <div class="toolbar-left">
 
-        <div class="login-logo">
-            LC
-        </div>
+                <div class="brand">
+                    <div class="brand-logo">
+                        LC
+                    </div>
 
-
-        <h1>
-            LabChat Login
-        </h1>
-
-
-        <p class="login-subtitle">
-            Sign in to continue
-        </p>
+                    <span>
+                        LabChat
+                    </span>
+                </div>
 
 
-        <!-- LOGIN FORM -->
-
-        <form id="loginForm">
+                <div class="toolbar-divider"></div>
 
 
-            <!-- EMAIL / ID -->
-
-            <div class="login-field">
-
-                <label for="loginIdentifier">
-                    Email / ID
-                </label>
-
-                <input
-                    id="loginIdentifier"
-                    type="text"
-                    placeholder="Enter your email or ID"
-                    autocomplete="username"
-                    required
+                <button
+                    id="prevPage"
+                    class="toolbar-button"
+                    type="button"
+                    title="Previous page"
                 >
+                    ‹
+                </button>
 
-            </div>
+
+                <div class="page-counter">
+
+                    <input
+                        id="pageNumber"
+                        type="number"
+                        min="1"
+                        value="1"
+                    >
+
+                    <span>/</span>
+
+                    <span id="pageCount">
+                        0
+                    </span>
+
+                </div>
 
 
-            <!-- PASSWORD -->
-
-            <div class="login-field">
-
-                <label for="loginPassword">
-                    Password
-                </label>
-
-                <input
-                    id="loginPassword"
-                    type="password"
-                    placeholder="Enter your password"
-                    autocomplete="current-password"
-                    required
+                <button
+                    id="nextPage"
+                    class="toolbar-button"
+                    type="button"
+                    title="Next page"
                 >
+                    ›
+                </button>
 
             </div>
 
 
-            <!-- LOGIN ERROR -->
-
-            <p
-                id="loginError"
-                class="login-error"
-            ></p>
+            <div class="toolbar-center">
 
 
-            <!-- LOGIN BUTTON -->
-
-            <button
-                id="loginButton"
-                class="login-submit"
-                type="submit"
-            >
-                Login
-            </button>
-
-
-        </form>
+                <button
+                    id="zoomOut"
+                    class="toolbar-button"
+                    type="button"
+                    title="Zoom out"
+                >
+                    −
+                </button>
 
 
-        <p class="login-hint">
-            Press
-            <strong>Ctrl + Shift + L</strong>
-            to open login.
-        </p>
-
-    </div>
-
-</div>
-
-
-
-<!-- =====================================================
-     LABCHAT APPLICATION
-===================================================== -->
-
-<section
-    id="chatScreen"
-    class="chat-screen"
->
-
-
-    <!-- =================================================
-         TOP BAR
-    ================================================== -->
-
-    <header class="topbar">
-
-
-        <!-- BRAND -->
-
-        <div class="brand">
-
-            <div class="small-logo">
-                LC
-            </div>
-
-            <div>
-
-                <h2>
-                    LabChat
-                </h2>
-
-                <span id="connectionStatus">
-                    Connecting...
+                <span
+                    id="zoomLevel"
+                    class="zoom-level"
+                >
+                    100%
                 </span>
 
+
+                <button
+                    id="zoomIn"
+                    class="toolbar-button"
+                    type="button"
+                    title="Zoom in"
+                >
+                    +
+                </button>
+
             </div>
 
-        </div>
+
+            <div class="toolbar-right">
+
+
+                <button
+                    id="openLoginButton"
+                    class="login-toolbar-button"
+                    type="button"
+                >
+                    Login
+                </button>
+
+
+                <button
+                    id="fullscreenButton"
+                    class="toolbar-button"
+                    type="button"
+                    title="Fullscreen"
+                >
+                    ⛶
+                </button>
+
+            </div>
+
+        </header>
 
 
 
-        <!-- ONLINE USERS -->
+        <!-- PDF CONTENT -->
 
-        <div class="online-info">
+        <main
+            id="pdfViewer"
+            class="pdf-viewer"
+        >
 
-            <span class="online-dot"></span>
-
-            <span id="onlineCount">
-                0 online
-            </span>
-
-        </div>
-
-
-
-        <!-- USER -->
-
-        <div class="user-info">
-
-            <span id="currentUser">
-                Guest
-            </span>
-
-            <button
-                id="leaveButton"
-                class="leave-button"
-                type="button"
+            <div
+                id="pdfPages"
+                class="pdf-pages"
             >
-                Sign Out
-            </button>
-
-        </div>
-
-
-    </header>
-
-
-
-    <!-- =================================================
-         LOGIN STATUS
-    ================================================== -->
-
-    <div
-        id="loginNotice"
-        class="login-notice"
-    >
-
-        <span>
-            You are not signed in.
-        </span>
-
-        <button
-            id="openLoginButton"
-            type="button"
-        >
-            Login
-        </button>
-
-    </div>
-
-
-
-    <!-- =================================================
-         PDF DOCUMENT
-    ================================================== -->
-
-    <section
-        id="pdfSection"
-        class="pdf-section hidden"
-    >
-
-
-        <div class="pdf-info">
-
-
-            <div class="pdf-icon">
-                PDF
             </div>
-
-
-            <div class="pdf-details">
-
-                <strong id="pdfTitle">
-                    Lab PDF
-                </strong>
-
-                <span id="pdfStatus">
-                    Loading PDF...
-                </span>
-
-            </div>
-
-
-        </div>
-
-
-
-        <a
-            id="pdfButton"
-            class="pdf-button"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-            Open PDF
-        </a>
-
-
-    </section>
-
-
-
-    <!-- =================================================
-         MESSAGES
-    ================================================== -->
-
-    <main
-        id="messages"
-        class="messages"
-        aria-live="polite"
-    >
-
-    </main>
-
-
-
-    <!-- =================================================
-         MESSAGE FORM
-    ================================================== -->
-
-    <form
-        id="messageForm"
-        class="message-form"
-    >
-
-
-        <div class="input-area">
 
 
             <div
-                id="codeIndicator"
-                class="code-indicator hidden"
+                id="pdfLoading"
+                class="pdf-loading"
             >
-                CODE MODE
+
+                <div class="loading-spinner"></div>
+
+                <p>
+                    Loading PDF...
+                </p>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+
+    <!-- =========================================
+         LOGIN OVERLAY
+    ========================================== -->
+
+    <div
+        id="loginOverlay"
+        class="login-overlay hidden"
+    >
+
+
+        <div
+            id="loginModal"
+            class="login-modal"
+        >
+
+
+            <button
+                id="closeLoginButton"
+                class="login-close"
+                type="button"
+                aria-label="Close login"
+            >
+                ×
+            </button>
+
+
+            <div class="login-logo">
+                LC
             </div>
 
 
-            <textarea
-                id="messageInput"
-                maxlength="10000"
-                placeholder="Login to send a message..."
-                autocomplete="off"
-                rows="1"
-                disabled
-            ></textarea>
+            <h1>
+                LabChat Login
+            </h1>
+
+
+            <p class="login-subtitle">
+                Sign in to continue
+            </p>
+
+
+            <form id="loginForm">
+
+
+                <div class="login-field">
+
+                    <label for="loginIdentifier">
+                        Email / ID
+                    </label>
+
+                    <input
+                        id="loginIdentifier"
+                        type="text"
+                        placeholder="Enter your email or ID"
+                        autocomplete="username"
+                    >
+
+                </div>
+
+
+                <div class="login-field">
+
+                    <label for="loginPassword">
+                        Password
+                    </label>
+
+                    <input
+                        id="loginPassword"
+                        type="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                    >
+
+                </div>
+
+
+                <p
+                    id="loginError"
+                    class="login-error"
+                ></p>
+
+
+                <button
+                    type="submit"
+                    class="login-submit"
+                >
+                    Login
+                </button>
+
+
+            </form>
+
+
+            <p class="login-hint">
+
+                Press
+                <strong>Ctrl + Shift + L</strong>
+                to open login.
+
+            </p>
 
 
         </div>
 
-
-
-        <!-- CODE BUTTON -->
-
-        <button
-            type="button"
-            id="codeButton"
-            class="tool-button"
-            disabled
-        >
-            &lt;/&gt; Code
-        </button>
+    </div>
 
 
 
-        <!-- SEND -->
+    <!-- =========================================
+         PDF.JS
+    ========================================== -->
 
-        <button
-            type="submit"
-            id="sendButton"
-            disabled
-        >
-            Send
-        </button>
-
-
-    </form>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
+        type="module"
+    ></script>
 
 
-</section>
-
-
-
-<!-- =====================================================
-     SUPABASE
-===================================================== -->
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-
-
-<!-- =====================================================
-     LABCHAT JAVASCRIPT
-===================================================== -->
-
-<script src="script.js"></script>
+    <script
+        src="script.js"
+        type="module"
+    ></script>
 
 
 </body>
+
 </html>
