@@ -1,6 +1,12 @@
 /* ==========================================
-   LABCHAT ADMIN — SUPABASE
-   ========================================== */
+   LABCHAT ADMIN PANEL
+   Supabase + Static GitHub Pages
+========================================== */
+
+
+/* ==========================================
+   SUPABASE
+========================================== */
 
 const SUPABASE_URL =
     "https://izobeyuplyramoojazdg.supabase.co";
@@ -17,19 +23,16 @@ const supabaseClient =
 
 /* ==========================================
    STATE
-   ========================================== */
+========================================== */
 
 let currentAdmin = null;
 let currentProfile = null;
-
 let users = [];
-
-let editingUserId = null;
 
 
 /* ==========================================
    DOM
-   ========================================== */
+========================================== */
 
 const loadingScreen =
     document.getElementById("loadingScreen");
@@ -43,6 +46,15 @@ const adminName =
 const logoutButton =
     document.getElementById("logoutButton");
 
+const usersTableBody =
+    document.getElementById("usersTableBody");
+
+const userSearch =
+    document.getElementById("userSearch");
+
+const refreshUsersButton =
+    document.getElementById("refreshUsersButton");
+
 const totalUsers =
     document.getElementById("totalUsers");
 
@@ -55,145 +67,58 @@ const onlineUsers =
 const totalMessages =
     document.getElementById("totalMessages");
 
-const usersTableBody =
-    document.getElementById("usersTableBody");
-
-const userSearch =
-    document.getElementById("userSearch");
-
-const refreshUsersButton =
-    document.getElementById("refreshUsersButton");
-
-
-/* ==========================================
-   NAVIGATION
-   ========================================== */
-
-const navItems =
-    document.querySelectorAll(
-        ".nav-item"
-    );
-
-const sectionButtons =
-    document.querySelectorAll(
-        "[data-section]"
-    );
-
-const dashboardSection =
-    document.getElementById(
-        "dashboardSection"
-    );
-
-const usersSection =
-    document.getElementById(
-        "usersSection"
-    );
-
-const createUserSection =
-    document.getElementById(
-        "createUserSection"
-    );
-
-const pageTitle =
-    document.getElementById("pageTitle");
-
-const pageSubtitle =
-    document.getElementById("pageSubtitle");
-
-
-/* ==========================================
-   CREATE USER FORM
-   ========================================== */
-
 const createUserForm =
-    document.getElementById(
-        "createUserForm"
-    );
-
-const newUserEmail =
-    document.getElementById(
-        "newUserEmail"
-    );
-
-const newUserUsername =
-    document.getElementById(
-        "newUserUsername"
-    );
-
-const newUserPassword =
-    document.getElementById(
-        "newUserPassword"
-    );
-
-const newUserRole =
-    document.getElementById(
-        "newUserRole"
-    );
+    document.getElementById("createUserForm");
 
 const createUserButton =
-    document.getElementById(
-        "createUserButton"
-    );
+    document.getElementById("createUserButton");
 
 const createUserMessage =
-    document.getElementById(
-        "createUserMessage"
-    );
+    document.getElementById("createUserMessage");
 
+const newUserEmail =
+    document.getElementById("newUserEmail");
 
-/* ==========================================
-   EDIT USER MODAL
-   ========================================== */
+const newUserUsername =
+    document.getElementById("newUserUsername");
+
+const newUserPassword =
+    document.getElementById("newUserPassword");
+
+const newUserRole =
+    document.getElementById("newUserRole");
 
 const editUserOverlay =
-    document.getElementById(
-        "editUserOverlay"
-    );
+    document.getElementById("editUserOverlay");
 
 const editUserForm =
-    document.getElementById(
-        "editUserForm"
-    );
+    document.getElementById("editUserForm");
 
 const editUserId =
-    document.getElementById(
-        "editUserId"
-    );
+    document.getElementById("editUserId");
 
 const editUsername =
-    document.getElementById(
-        "editUsername"
-    );
+    document.getElementById("editUsername");
 
 const editRole =
-    document.getElementById(
-        "editRole"
-    );
+    document.getElementById("editRole");
 
 const editStatus =
-    document.getElementById(
-        "editStatus"
-    );
+    document.getElementById("editStatus");
 
 const editUserMessage =
-    document.getElementById(
-        "editUserMessage"
-    );
+    document.getElementById("editUserMessage");
 
 const closeEditModal =
-    document.getElementById(
-        "closeEditModal"
-    );
+    document.getElementById("closeEditModal");
 
 const cancelEditButton =
-    document.getElementById(
-        "cancelEditButton"
-    );
+    document.getElementById("cancelEditButton");
 
 
 /* ==========================================
-   INITIALIZE
-   ========================================== */
+   START
+========================================== */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -201,49 +126,51 @@ document.addEventListener(
 );
 
 
+/* ==========================================
+   INITIALIZE ADMIN
+========================================== */
+
 async function initializeAdmin() {
+
+    console.log(
+        "[LabChat Admin] Initializing..."
+    );
 
     try {
 
-        console.log(
-            "LabChat Admin: initializing..."
-        );
-
-
         /*
-         * Get current Supabase session.
+         * Get the authenticated user directly
+         * from Supabase Auth.
          */
 
         const {
-            data,
+            data: {
+                user
+            },
             error
         } =
-            await supabaseClient
-                .auth
-                .getSession();
+            await supabaseClient.auth.getUser();
 
 
         if (error) {
 
             console.error(
-                "Session error:",
+                "[LabChat Admin] Auth error:",
                 error
             );
 
-            redirectToLogin();
+            showAdminError(
+                "Authentication could not be verified."
+            );
 
             return;
         }
 
 
-        /*
-         * No session.
-         */
-
-        if (!data?.session) {
+        if (!user) {
 
             console.log(
-                "No admin session found."
+                "[LabChat Admin] No authenticated user."
             );
 
             redirectToLogin();
@@ -252,83 +179,129 @@ async function initializeAdmin() {
         }
 
 
-        /*
-         * Store logged-in user.
-         */
-
         currentAdmin =
-            data.session.user;
+            user;
 
 
         console.log(
-            "Authenticated user:",
-            currentAdmin.id
+            "[LabChat Admin] Authenticated:",
+            user.id
         );
 
 
         /*
-         * Verify admin.
+         * Verify admin using the existing
+         * Supabase security function.
          */
 
-        const verified =
+        const isAdmin =
             await verifyAdmin();
 
 
-        if (!verified) {
+        if (!isAdmin) {
 
             return;
         }
 
 
         /*
-         * IMPORTANT:
-         *
-         * Admin verification succeeded.
-         *
-         * Now remove loading screen
-         * and display the actual dashboard.
+         * Load the admin profile.
          */
 
-        if (loadingScreen) {
+        const profileLoaded =
+            await loadAdminProfile();
 
-            loadingScreen.classList.add(
-                "hidden"
-            );
+
+        if (!profileLoaded) {
+
+            return;
         }
 
 
-        if (adminApp) {
+        /*
+         * Load dashboard data.
+         */
 
-            adminApp.classList.remove(
-                "hidden"
-            );
-        }
+        await loadUsers();
+
+
+        updateDashboardStats();
+
+
+        /*
+         * Everything succeeded.
+         */
+
+        showAdminApp();
 
 
         console.log(
-            "LabChat Admin: ready."
+            "[LabChat Admin] Admin panel ready."
         );
 
 
     } catch (error) {
 
         console.error(
-            "Admin initialization error:",
+            "[LabChat Admin] Fatal error:",
             error
         );
 
-        redirectToLogin();
+        showAdminError(
+            "Could not load the admin panel."
+        );
     }
 }
 
 
 /* ==========================================
    VERIFY ADMIN
-   ========================================== */
+========================================== */
 
 async function verifyAdmin() {
 
-    if (!currentAdmin) {
+    console.log(
+        "[LabChat Admin] Checking admin permission..."
+    );
+
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient.rpc(
+            "is_admin"
+        );
+
+
+    if (error) {
+
+        console.error(
+            "[LabChat Admin] is_admin() error:",
+            error
+        );
+
+        showAdminError(
+            "Could not verify admin access."
+        );
+
+        return false;
+    }
+
+
+    console.log(
+        "[LabChat Admin] is_admin():",
+        data
+    );
+
+
+    if (data !== true) {
+
+        console.error(
+            "[LabChat Admin] User is not an active admin."
+        );
+
+        await supabaseClient.auth.signOut();
 
         redirectToLogin();
 
@@ -336,13 +309,20 @@ async function verifyAdmin() {
     }
 
 
-    /*
-     * Get profile for logged-in user.
-     *
-     * We use maybeSingle() because it
-     * gives us a clean result when no
-     * profile exists.
-     */
+    return true;
+}
+
+
+/* ==========================================
+   LOAD ADMIN PROFILE
+========================================== */
+
+async function loadAdminProfile() {
+
+    console.log(
+        "[LabChat Admin] Loading admin profile..."
+    );
+
 
     const {
         data,
@@ -351,7 +331,7 @@ async function verifyAdmin() {
         await supabaseClient
             .from("profiles")
             .select(
-                "id, username, role, is_active, created_at"
+                "id, username, role, is_active"
             )
             .eq(
                 "id",
@@ -363,31 +343,27 @@ async function verifyAdmin() {
     if (error) {
 
         console.error(
-            "Profile lookup error:",
+            "[LabChat Admin] Profile error:",
             error
         );
 
-        redirectToLogin();
+        showAdminError(
+            "Could not load admin profile."
+        );
 
         return false;
     }
 
 
-    /*
-     * Profile doesn't exist.
-     */
-
     if (!data) {
 
         console.error(
-            "No profile found for user."
+            "[LabChat Admin] Profile not found."
         );
 
-        await supabaseClient
-            .auth
-            .signOut();
-
-        redirectToLogin();
+        showAdminError(
+            "Admin profile was not found."
+        );
 
         return false;
     }
@@ -397,32 +373,22 @@ async function verifyAdmin() {
         data;
 
 
-    /*
-     * Check role.
-     */
-
     if (
         currentProfile.role !==
         "admin"
     ) {
 
         console.error(
-            "Admin access denied."
+            "[LabChat Admin] Profile role is not admin."
         );
 
-        await supabaseClient
-            .auth
-            .signOut();
+        await supabaseClient.auth.signOut();
 
         redirectToLogin();
 
         return false;
     }
 
-
-    /*
-     * Check active status.
-     */
 
     if (
         currentProfile.is_active ===
@@ -430,12 +396,10 @@ async function verifyAdmin() {
     ) {
 
         console.error(
-            "Admin account is inactive."
+            "[LabChat Admin] Admin account inactive."
         );
 
-        await supabaseClient
-            .auth
-            .signOut();
+        await supabaseClient.auth.signOut();
 
         redirectToLogin();
 
@@ -443,25 +407,7 @@ async function verifyAdmin() {
     }
 
 
-    /*
-     * Update sidebar identity.
-     */
-
     updateAdminIdentity();
-
-
-    /*
-     * Load users.
-     */
-
-    await loadUsers();
-
-
-    /*
-     * Update dashboard.
-     */
-
-    updateDashboardStats();
 
 
     return true;
@@ -470,7 +416,7 @@ async function verifyAdmin() {
 
 /* ==========================================
    ADMIN IDENTITY
-   ========================================== */
+========================================== */
 
 function updateAdminIdentity() {
 
@@ -480,187 +426,101 @@ function updateAdminIdentity() {
 
 
     adminName.textContent =
-        currentProfile.username ||
-        currentAdmin.email ||
+        currentProfile?.username ||
+        currentAdmin?.email ||
         "Admin";
 }
 
 
 /* ==========================================
-   NAVIGATION
-   ========================================== */
+   SHOW ADMIN APP
+========================================== */
 
-sectionButtons.forEach(
-    button => {
+function showAdminApp() {
 
-        button.addEventListener(
-            "click",
-            () => {
+    if (loadingScreen) {
 
-                const section =
-                    button.dataset.section;
-
-                if (!section) {
-                    return;
-                }
-
-                showSection(
-                    section
-                );
-            }
-        );
-    }
-);
-
-
-function showSection(section) {
-
-    /*
-     * Hide everything first.
-     */
-
-    dashboardSection?.classList.add(
-        "hidden"
-    );
-
-    usersSection?.classList.add(
-        "hidden"
-    );
-
-    createUserSection?.classList.add(
-        "hidden"
-    );
-
-
-    /*
-     * Remove active state.
-     */
-
-    navItems.forEach(
-        item => {
-
-            item.classList.remove(
-                "active"
-            );
-        }
-    );
-
-
-    /*
-     * Dashboard.
-     */
-
-    if (
-        section ===
-        "dashboard"
-    ) {
-
-        dashboardSection?.classList.remove(
+        loadingScreen.classList.add(
             "hidden"
         );
-
-        setPageHeader(
-            "Dashboard",
-            "Manage your LabChat system."
-        );
     }
 
 
-    /*
-     * Users.
-     */
+    if (adminApp) {
 
-    else if (
-        section ===
-        "users"
-    ) {
-
-        usersSection?.classList.remove(
+        adminApp.classList.remove(
             "hidden"
         );
-
-        setPageHeader(
-            "Users",
-            "Manage LabChat accounts."
-        );
-
-        loadUsers();
     }
-
-
-    /*
-     * Create user.
-     */
-
-    else if (
-        section ===
-        "create-user"
-    ) {
-
-        createUserSection?.classList.remove(
-            "hidden"
-        );
-
-        setPageHeader(
-            "Create User",
-            "Create a new LabChat account."
-        );
-    }
-
-
-    /*
-     * Mark sidebar navigation item active.
-     */
-
-    navItems.forEach(
-        item => {
-
-            if (
-                item.dataset.section ===
-                section
-            ) {
-
-                item.classList.add(
-                    "active"
-                );
-            }
-        }
-    );
 }
 
 
-function setPageHeader(
-    title,
-    subtitle
-) {
+/* ==========================================
+   SHOW ERROR
+========================================== */
 
-    if (pageTitle) {
+function showAdminError(message) {
 
-        pageTitle.textContent =
-            title;
-    }
+    console.error(
+        "[LabChat Admin]",
+        message
+    );
 
 
-    if (pageSubtitle) {
+    if (loadingScreen) {
 
-        pageSubtitle.textContent =
-            subtitle;
+        const strong =
+            loadingScreen.querySelector(
+                "strong"
+            );
+
+        const span =
+            loadingScreen.querySelector(
+                "span"
+            );
+
+
+        if (strong) {
+
+            strong.textContent =
+                "Admin access error";
+        }
+
+
+        if (span) {
+
+            span.textContent =
+                message;
+        }
     }
 }
 
 
 /* ==========================================
    LOAD USERS
-   ========================================== */
+========================================== */
 
 async function loadUsers() {
 
-    if (!usersTableBody) {
-        return;
+    if (usersTableBody) {
+
+        usersTableBody.innerHTML =
+            `
+            <tr>
+                <td
+                    colspan="5"
+                    class="table-empty"
+                >
+                    Loading users...
+                </td>
+            </tr>
+            `;
     }
 
 
-    showLoading();
+    console.log(
+        "[LabChat Admin] Loading users..."
+    );
 
 
     const {
@@ -683,13 +543,15 @@ async function loadUsers() {
     if (error) {
 
         console.error(
-            "Load users error:",
+            "[LabChat Admin] Users error:",
             error
         );
+
 
         showTableMessage(
             "Could not load users."
         );
+
 
         return;
     }
@@ -705,12 +567,18 @@ async function loadUsers() {
 
 
     updateDashboardStats();
+
+
+    console.log(
+        "[LabChat Admin] Users loaded:",
+        users.length
+    );
 }
 
 
 /* ==========================================
    RENDER USERS
-   ========================================== */
+========================================== */
 
 function renderUsers(list) {
 
@@ -719,7 +587,8 @@ function renderUsers(list) {
     }
 
 
-    usersTableBody.innerHTML = "";
+    usersTableBody.innerHTML =
+        "";
 
 
     if (
@@ -744,9 +613,7 @@ function renderUsers(list) {
                 );
 
 
-            /* ==============================
-               USER
-            ============================== */
+            /* USER */
 
             const userCell =
                 document.createElement(
@@ -754,12 +621,12 @@ function renderUsers(list) {
                 );
 
 
-            const userWrapper =
+            const wrapper =
                 document.createElement(
                     "div"
                 );
 
-            userWrapper.className =
+            wrapper.className =
                 "user-cell";
 
 
@@ -793,18 +660,10 @@ function renderUsers(list) {
             name.className =
                 "user-name";
 
-
             name.textContent =
                 user.username ||
                 "Unknown";
 
-
-            /*
-             * IMPORTANT:
-             *
-             * profiles does NOT contain email.
-             * Therefore we don't invent one.
-             */
 
             const email =
                 document.createElement(
@@ -813,17 +672,6 @@ function renderUsers(list) {
 
             email.className =
                 "user-email";
-
-
-            if (
-                user.id ===
-                currentAdmin?.id
-            ) {
-
-                email.textContent =
-                    currentAdmin.email ||
-                    "";
-            }
 
 
             identity.appendChild(
@@ -835,23 +683,21 @@ function renderUsers(list) {
             );
 
 
-            userWrapper.appendChild(
+            wrapper.appendChild(
                 avatar
             );
 
-            userWrapper.appendChild(
+            wrapper.appendChild(
                 identity
             );
 
 
             userCell.appendChild(
-                userWrapper
+                wrapper
             );
 
 
-            /* ==============================
-               ROLE
-            ============================== */
+            /* ROLE */
 
             const roleCell =
                 document.createElement(
@@ -883,9 +729,7 @@ function renderUsers(list) {
             );
 
 
-            /* ==============================
-               STATUS
-            ============================== */
+            /* STATUS */
 
             const statusCell =
                 document.createElement(
@@ -899,20 +743,20 @@ function renderUsers(list) {
                 );
 
 
-            const isActive =
+            const active =
                 user.is_active !== false;
 
 
             statusBadge.className =
                 `status-badge ${
-                    isActive
+                    active
                         ? "status-active"
                         : "status-inactive"
                 }`;
 
 
             statusBadge.textContent =
-                isActive
+                active
                     ? "Active"
                     : "Inactive";
 
@@ -922,9 +766,7 @@ function renderUsers(list) {
             );
 
 
-            /* ==============================
-               CREATED
-            ============================== */
+            /* CREATED */
 
             const createdCell =
                 document.createElement(
@@ -938,9 +780,7 @@ function renderUsers(list) {
                 );
 
 
-            /* ==============================
-               ACTIONS
-            ============================== */
+            /* ACTIONS */
 
             const actionsCell =
                 document.createElement(
@@ -958,10 +798,6 @@ function renderUsers(list) {
                 "table-actions";
 
 
-            /*
-             * EDIT
-             */
-
             const editButton =
                 document.createElement(
                     "button"
@@ -971,10 +807,8 @@ function renderUsers(list) {
             editButton.type =
                 "button";
 
-
             editButton.className =
                 "action-button";
-
 
             editButton.textContent =
                 "Edit";
@@ -982,18 +816,12 @@ function renderUsers(list) {
 
             editButton.addEventListener(
                 "click",
-                () => {
-
+                () =>
                     openEditModal(
                         user
-                    );
-                }
+                    )
             );
 
-
-            /*
-             * ACTIVATE / DEACTIVATE
-             */
 
             const statusButton =
                 document.createElement(
@@ -1007,37 +835,30 @@ function renderUsers(list) {
 
             statusButton.className =
                 `action-button ${
-                    isActive
+                    active
                         ? "danger"
                         : "success"
                 }`;
 
 
             statusButton.textContent =
-                isActive
+                active
                     ? "Deactivate"
                     : "Activate";
 
 
             statusButton.addEventListener(
                 "click",
-                () => {
-
+                () =>
                     toggleUserStatus(
                         user
-                    );
-                }
+                    )
             );
 
 
-            /*
-             * Prevent admin from
-             * deactivating themselves.
-             */
-
             if (
                 user.id ===
-                currentAdmin?.id
+                currentAdmin.id
             ) {
 
                 statusButton.disabled =
@@ -1062,9 +883,7 @@ function renderUsers(list) {
             );
 
 
-            /* ==============================
-               ADD ROW
-            ============================== */
+            /* ROW */
 
             row.appendChild(
                 userCell
@@ -1097,7 +916,7 @@ function renderUsers(list) {
 
 /* ==========================================
    SEARCH USERS
-   ========================================== */
+========================================== */
 
 if (userSearch) {
 
@@ -1130,19 +949,10 @@ if (userSearch) {
                                 user.username ||
                                 ""
                             )
-                                .toLowerCase()
-                                .includes(
-                                    query
-                                )
-                            ||
-                            String(
-                                user.role ||
-                                ""
+                            .toLowerCase()
+                            .includes(
+                                query
                             )
-                                .toLowerCase()
-                                .includes(
-                                    query
-                                )
                         );
                     }
                 );
@@ -1158,7 +968,7 @@ if (userSearch) {
 
 /* ==========================================
    REFRESH USERS
-   ========================================== */
+========================================== */
 
 if (refreshUsersButton) {
 
@@ -1167,6 +977,8 @@ if (refreshUsersButton) {
         async () => {
 
             await loadUsers();
+
+            updateDashboardStats();
         }
     );
 }
@@ -1174,11 +986,11 @@ if (refreshUsersButton) {
 
 /* ==========================================
    DASHBOARD STATS
-   ========================================== */
+========================================== */
 
 function updateDashboardStats() {
 
-    if (!Array.isArray(users)) {
+    if (!users) {
         return;
     }
 
@@ -1204,20 +1016,12 @@ function updateDashboardStats() {
     }
 
 
-    /*
-     * active_users table contains
-     * currently online usernames.
-     */
+    if (onlineUsers) {
 
-    loadOnlineUserCount();
+        onlineUsers.textContent =
+            "—";
+    }
 
-
-    /*
-     * We don't have a messages table
-     * query here yet because your
-     * supplied SQL did not include the
-     * messages table definition.
-     */
 
     if (totalMessages) {
 
@@ -1228,53 +1032,8 @@ function updateDashboardStats() {
 
 
 /* ==========================================
-   ONLINE USER COUNT
-   ========================================== */
-
-async function loadOnlineUserCount() {
-
-    if (!onlineUsers) {
-        return;
-    }
-
-
-    const {
-        count,
-        error
-    } =
-        await supabaseClient
-            .from("active_users")
-            .select(
-                "username",
-                {
-                    count: "exact",
-                    head: true
-                }
-            );
-
-
-    if (error) {
-
-        console.error(
-            "Online user count error:",
-            error
-        );
-
-        onlineUsers.textContent =
-            "—";
-
-        return;
-    }
-
-
-    onlineUsers.textContent =
-        count ?? 0;
-}
-
-
-/* ==========================================
    CREATE USER
-   ========================================== */
+========================================== */
 
 if (createUserForm) {
 
@@ -1283,6 +1042,15 @@ if (createUserForm) {
         async event => {
 
             event.preventDefault();
+
+
+            if (
+                createUserMessage
+            ) {
+
+                createUserMessage.textContent =
+                    "";
+            }
 
 
             const email =
@@ -1304,47 +1072,14 @@ if (createUserForm) {
                 "user";
 
 
-            if (!email) {
-
-                setCreateUserMessage(
-                    "Email is required.",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            if (!username) {
-
-                setCreateUserMessage(
-                    "Username is required.",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            if (!password) {
-
-                setCreateUserMessage(
-                    "Password is required.",
-                    "error"
-                );
-
-                return;
-            }
-
-
             if (
-                password.length <
-                6
+                !email ||
+                !username ||
+                !password
             ) {
 
                 setCreateUserMessage(
-                    "Password must contain at least 6 characters.",
-                    "error"
+                    "Please fill in all fields."
                 );
 
                 return;
@@ -1352,60 +1087,51 @@ if (createUserForm) {
 
 
             /*
-             * SECURITY:
+             * IMPORTANT:
              *
-             * We cannot create another
-             * Supabase Auth account using
-             * the browser client because
-             * doing so would require the
-             * service-role key.
+             * We do not create another
+             * Auth account from this
+             * browser client because
+             * signUp can interfere with
+             * the current admin session.
              *
-             * Never put that key here.
+             * A secure Edge Function is
+             * required for this operation.
              */
 
             setCreateUserMessage(
-                "User creation requires the secure Supabase server function. Your admin session is safe.",
-                "error"
+                "User creation requires a secure Supabase server function."
             );
         }
     );
 }
 
 
+/* ==========================================
+   CREATE USER MESSAGE
+========================================== */
+
 function setCreateUserMessage(
-    message,
-    type
+    message
 ) {
 
-    if (!createUserMessage) {
-        return;
+    if (createUserMessage) {
+
+        createUserMessage.textContent =
+            message;
     }
-
-
-    createUserMessage.textContent =
-        message;
-
-
-    createUserMessage.className =
-        `form-message ${
-            type || ""
-        }`;
 }
 
 
 /* ==========================================
    EDIT USER MODAL
-   ========================================== */
+========================================== */
 
 function openEditModal(user) {
 
     if (!editUserOverlay) {
         return;
     }
-
-
-    editingUserId =
-        user.id;
 
 
     if (editUserId) {
@@ -1444,64 +1170,26 @@ function openEditModal(user) {
 
         editUserMessage.textContent =
             "";
-
-        editUserMessage.className =
-            "form-message";
     }
 
 
     editUserOverlay.classList.remove(
         "hidden"
     );
-
-
-    if (editUsername) {
-
-        setTimeout(
-            () => {
-
-                editUsername.focus();
-
-            },
-            50
-        );
-    }
 }
 
 
 /* ==========================================
    CLOSE EDIT MODAL
-   ========================================== */
+========================================== */
 
 function closeEditUserModal() {
 
-    if (!editUserOverlay) {
-        return;
-    }
+    if (editUserOverlay) {
 
-
-    editUserOverlay.classList.add(
-        "hidden"
-    );
-
-
-    editingUserId =
-        null;
-
-
-    if (editUserForm) {
-
-        editUserForm.reset();
-    }
-
-
-    if (editUserMessage) {
-
-        editUserMessage.textContent =
-            "";
-
-        editUserMessage.className =
-            "form-message";
+        editUserOverlay.classList.add(
+            "hidden"
+        );
     }
 }
 
@@ -1524,9 +1212,27 @@ if (cancelEditButton) {
 }
 
 
+if (editUserOverlay) {
+
+    editUserOverlay.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                editUserOverlay
+            ) {
+
+                closeEditUserModal();
+            }
+        }
+    );
+}
+
+
 /* ==========================================
-   EDIT USER FORM
-   ========================================== */
+   EDIT USER
+========================================== */
 
 if (editUserForm) {
 
@@ -1538,19 +1244,7 @@ if (editUserForm) {
 
 
             const userId =
-                editingUserId ||
                 editUserId?.value;
-
-
-            if (!userId) {
-
-                setEditUserMessage(
-                    "No user selected.",
-                    "error"
-                );
-
-                return;
-            }
 
 
             const username =
@@ -1559,8 +1253,7 @@ if (editUserForm) {
 
 
             const role =
-                editRole?.value ||
-                "user";
+                editRole?.value;
 
 
             const isActive =
@@ -1568,190 +1261,102 @@ if (editUserForm) {
                 "true";
 
 
-            if (!username) {
+            if (
+                !userId ||
+                !username
+            ) {
 
-                setEditUserMessage(
-                    "Username is required.",
-                    "error"
-                );
+                if (editUserMessage) {
+
+                    editUserMessage.textContent =
+                        "Username is required.";
+                }
 
                 return;
             }
 
 
             /*
-             * Don't allow the admin
-             * to accidentally change
-             * their own status.
+             * Do not allow the admin
+             * to deactivate itself.
              */
 
             if (
                 userId ===
-                currentAdmin?.id
-                &&
+                currentAdmin.id &&
                 !isActive
             ) {
 
-                setEditUserMessage(
-                    "You cannot deactivate your own admin account.",
-                    "error"
-                );
+                if (editUserMessage) {
+
+                    editUserMessage.textContent =
+                        "You cannot deactivate your own account.";
+                }
 
                 return;
             }
 
 
-            await updateUserProfile(
-                userId,
-                username,
-                role,
-                isActive
-            );
+            const {
+                error
+            } =
+                await supabaseClient
+                    .from("profiles")
+                    .update({
+                        username:
+                            username,
+                        role:
+                            role,
+                        is_active:
+                            isActive
+                    })
+                    .eq(
+                        "id",
+                        userId
+                    );
+
+
+            if (error) {
+
+                console.error(
+                    "[LabChat Admin] Update error:",
+                    error
+                );
+
+
+                if (editUserMessage) {
+
+                    editUserMessage.textContent =
+                        "Could not update user.";
+                }
+
+                return;
+            }
+
+
+            closeEditUserModal();
+
+
+            await loadUsers();
+
+            updateDashboardStats();
         }
     );
 }
 
 
 /* ==========================================
-   UPDATE USER PROFILE
-   ========================================== */
-
-async function updateUserProfile(
-    userId,
-    username,
-    role,
-    isActive
-) {
-
-    if (!userId) {
-        return;
-    }
-
-
-    /*
-     * Do not allow an admin to
-     * remove their own admin role.
-     */
-
-    if (
-        userId ===
-        currentAdmin?.id
-        &&
-        role !== "admin"
-    ) {
-
-        setEditUserMessage(
-            "You cannot remove your own admin role.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const {
-        error
-    } =
-        await supabaseClient
-            .from("profiles")
-            .update({
-                username:
-                    username,
-
-                role:
-                    role,
-
-                is_active:
-                    isActive
-            })
-            .eq(
-                "id",
-                userId
-            );
-
-
-    if (error) {
-
-        console.error(
-            "Update profile error:",
-            error
-        );
-
-
-        setEditUserMessage(
-            "Could not update user. Check your admin database policies.",
-            "error"
-        );
-
-
-        return;
-    }
-
-
-    /*
-     * If we edited ourselves,
-     * update the local identity too.
-     */
-
-    if (
-        userId ===
-        currentAdmin?.id
-    ) {
-
-        currentProfile.username =
-            username;
-
-        currentProfile.role =
-            role;
-
-        currentProfile.is_active =
-            isActive;
-
-
-        updateAdminIdentity();
-    }
-
-
-    setEditUserMessage(
-        "User updated successfully.",
-        "success"
-    );
-
-
-    setTimeout(
-        async () => {
-
-            closeEditUserModal();
-
-            await loadUsers();
-
-        },
-        500
-    );
-}
-
-
-/* ==========================================
-   ACTIVATE / DEACTIVATE USER
-   ========================================== */
+   TOGGLE USER STATUS
+========================================== */
 
 async function toggleUserStatus(
     user
 ) {
 
-    if (!user) {
-        return;
-    }
-
-
     if (
         user.id ===
-        currentAdmin?.id
+        currentAdmin.id
     ) {
-
-        alert(
-            "You cannot deactivate yourself."
-        );
 
         return;
     }
@@ -1779,27 +1384,134 @@ async function toggleUserStatus(
     if (error) {
 
         console.error(
-            "Status update error:",
+            "[LabChat Admin] Status error:",
             error
         );
-
 
         alert(
             "Could not change user status."
         );
-
 
         return;
     }
 
 
     await loadUsers();
+
+    updateDashboardStats();
+}
+
+
+/* ==========================================
+   SIDEBAR NAVIGATION
+========================================== */
+
+const navItems =
+    document.querySelectorAll(
+        ".nav-item"
+    );
+
+const sections = {
+
+    dashboard:
+        document.getElementById(
+            "dashboardSection"
+        ),
+
+    users:
+        document.getElementById(
+            "usersSection"
+        ),
+
+    "create-user":
+        document.getElementById(
+            "createUserSection"
+        )
+};
+
+
+navItems.forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                switchSection(
+                    button.dataset.section
+                );
+            }
+        );
+    }
+);
+
+
+document
+    .querySelectorAll(
+        ".quick-action"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    switchSection(
+                        button.dataset.section
+                    );
+                }
+            );
+        }
+    );
+
+
+function switchSection(
+    sectionName
+) {
+
+    Object.values(
+        sections
+    ).forEach(
+        section => {
+
+            if (section) {
+
+                section.classList.add(
+                    "hidden"
+                );
+            }
+        }
+    );
+
+
+    if (
+        sections[sectionName]
+    ) {
+
+        sections[sectionName]
+            .classList.remove(
+                "hidden"
+            );
+    }
+
+
+    navItems.forEach(
+        item => {
+
+            item.classList.toggle(
+                "active",
+                item.dataset.section ===
+                    sectionName
+            );
+        }
+    );
 }
 
 
 /* ==========================================
    LOGOUT
-   ========================================== */
+========================================== */
 
 if (logoutButton) {
 
@@ -1814,33 +1526,26 @@ async function logout() {
 
     try {
 
-        await supabaseClient
-            .auth
-            .signOut();
+        await supabaseClient.auth.signOut();
 
     } catch (error) {
 
         console.error(
-            "Logout error:",
+            "[LabChat Admin] Logout error:",
             error
         );
-
-    } finally {
-
-        redirectToLogin();
     }
+
+
+    redirectToLogin();
 }
 
 
 /* ==========================================
    REDIRECT
-   ========================================== */
+========================================== */
 
 function redirectToLogin() {
-
-    /*
-     * All files are in the same folder.
-     */
 
     window.location.href =
         "index.html";
@@ -1848,57 +1553,8 @@ function redirectToLogin() {
 
 
 /* ==========================================
-   LOADING TABLE
-   ========================================== */
-
-function showLoading() {
-
-    if (!usersTableBody) {
-        return;
-    }
-
-
-    usersTableBody.innerHTML = "";
-
-
-    const row =
-        document.createElement(
-            "tr"
-        );
-
-
-    const cell =
-        document.createElement(
-            "td"
-        );
-
-
-    cell.colSpan =
-        5;
-
-
-    cell.className =
-        "table-empty";
-
-
-    cell.textContent =
-        "Loading users...";
-
-
-    row.appendChild(
-        cell
-    );
-
-
-    usersTableBody.appendChild(
-        row
-    );
-}
-
-
-/* ==========================================
    TABLE MESSAGE
-   ========================================== */
+========================================== */
 
 function showTableMessage(
     message
@@ -1909,72 +1565,23 @@ function showTableMessage(
     }
 
 
-    usersTableBody.innerHTML = "";
-
-
-    const row =
-        document.createElement(
-            "tr"
-        );
-
-
-    const cell =
-        document.createElement(
-            "td"
-        );
-
-
-    cell.colSpan =
-        5;
-
-
-    cell.className =
-        "table-empty";
-
-
-    cell.textContent =
-        message;
-
-
-    row.appendChild(
-        cell
-    );
-
-
-    usersTableBody.appendChild(
-        row
-    );
-}
-
-
-/* ==========================================
-   EDIT MESSAGE
-   ========================================== */
-
-function setEditUserMessage(
-    message,
-    type
-) {
-
-    if (!editUserMessage) {
-        return;
-    }
-
-
-    editUserMessage.textContent =
-        message;
-
-
-    editUserMessage.className =
-        `form-message ${
-            type || ""
-        }`;
+    usersTableBody.innerHTML =
+        `
+        <tr>
+            <td
+                colspan="5"
+                class="table-empty"
+            >
+                ${escapeHtml(message)}
+            </td>
+        </tr>
+        `;
 }
 
 
 /* ==========================================
    HELPERS
-   ========================================== */
+========================================== */
 
 function getInitials(
     value
@@ -1984,11 +1591,10 @@ function getInitials(
         String(
             value || "U"
         )
-            .trim();
+        .trim();
 
 
     if (!text) {
-
         return "U";
     }
 
@@ -2016,7 +1622,8 @@ function getInitials(
     return (
         parts[0][0] +
         parts[1][0]
-    ).toUpperCase();
+    )
+    .toUpperCase();
 }
 
 
@@ -2025,7 +1632,6 @@ function formatDate(
 ) {
 
     if (!timestamp) {
-
         return "—";
     }
 
@@ -2051,10 +1657,8 @@ function formatDate(
         {
             day:
                 "2-digit",
-
             month:
                 "short",
-
             year:
                 "numeric"
         }
@@ -2062,9 +1666,39 @@ function formatDate(
 }
 
 
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value
+    )
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+}
+
+
 /* ==========================================
-   ESC KEY
-   ========================================== */
+   ESCAPE KEY
+========================================== */
 
 document.addEventListener(
     "keydown",
@@ -2079,25 +1713,3 @@ document.addEventListener(
         }
     }
 );
-
-
-/* ==========================================
-   CLICK OUTSIDE EDIT MODAL
-   ========================================== */
-
-if (editUserOverlay) {
-
-    editUserOverlay.addEventListener(
-        "click",
-        event => {
-
-            if (
-                event.target ===
-                editUserOverlay
-            ) {
-
-                closeEditUserModal();
-            }
-        }
-    );
-}
