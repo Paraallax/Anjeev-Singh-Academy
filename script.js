@@ -841,7 +841,7 @@ async function loadUserProfile(user) {
 
 
             window.location.href =
-                "../admin/admin.html";
+                "admin.html";
 
 
             return true;
