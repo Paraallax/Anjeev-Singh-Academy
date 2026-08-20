@@ -1562,8 +1562,16 @@ async function restoreSession() {
         }
 
         /*
-         * Admin sessions are valid only
-         * for the current browser tab.
+         * ADMIN SESSION
+         *
+         * Admin login is valid only while
+         * the admin tab/session flag exists.
+         *
+         * If the admin tab was closed,
+         * sessionStorage is gone, so the
+         * persisted Supabase admin session
+         * must be signed out instead of
+         * redirecting to admin again.
          */
 
         if (
@@ -1582,6 +1590,10 @@ async function restoreSession() {
             ) {
 
                 await supabaseClient.auth.signOut();
+
+                sessionStorage.removeItem(
+                    ADMIN_TAB_SESSION_KEY
+                );
 
                 showGuestState();
 
@@ -1611,8 +1623,8 @@ async function restoreSession() {
         );
 
     }
-}
 
+}
 
 /* =========================================================
    LOAD USER PROFILE
@@ -1704,7 +1716,7 @@ async function loadUserProfile(
             );
 
             window.location.href =
-                "../admin/admin.html";
+                "admin.html";
 
             return true;
 
