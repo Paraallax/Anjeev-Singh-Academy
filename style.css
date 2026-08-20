@@ -1,546 +1,1574 @@
+/* =========================================================
+   LABCHAT
+   Main Stylesheet
+   ========================================================= */
+
+
+/* =========================================================
+   RESET
+   ========================================================= */
+
 * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
+
+/* =========================================================
+   ROOT VARIABLES
+   ========================================================= */
+
+:root {
+    --background: #080b10;
+    --surface: #10151d;
+    --surface-2: #171d27;
+    --border: #252d39;
+
+    --text: #f3f5f7;
+    --muted: #8993a1;
+
+    --accent: #4f8cff;
+    --accent-hover: #3b78e7;
+
+    --danger: #ff5d6c;
+    --success: #4ade80;
+}
+
+
+/* =========================================================
+   BASE
+   ========================================================= */
 
 html,
 body {
     width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
+    min-height: 100%;
+}
 
-    overflow: hidden;
+body {
+    min-height: 100vh;
 
-    background: #080b10;
-
-    color: #ffffff;
+    background: var(--background);
+    color: var(--text);
 
     font-family:
-        Arial,
-        Helvetica,
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
         sans-serif;
 }
 
-
-/* =========================================
-   PDF APP
-========================================= */
-
-.pdf-app {
-    width: 100%;
-    height: 100vh;
-
-    display: flex;
-    flex-direction: column;
-
-    background: #080b10;
+button,
+input,
+textarea {
+    font: inherit;
 }
 
-
-/* =========================================
-   TOOLBAR
-========================================= */
-
-.pdf-toolbar {
-    height: 62px;
-
-    flex-shrink: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 0 18px;
-
-    background: #11161e;
-
-    border-bottom:
-        1px solid #29313d;
-
-    z-index: 20;
-}
-
-
-.toolbar-left,
-.toolbar-center,
-.toolbar-right {
-    display: flex;
-    align-items: center;
-
-    gap: 8px;
-}
-
-
-.brand {
-    display: flex;
-    align-items: center;
-
-    gap: 10px;
-
-    font-weight: 700;
-    font-size: 16px;
-}
-
-
-.brand-logo {
-    width: 36px;
-    height: 36px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 10px;
-
-    background: #4d8dff;
-
-    font-size: 13px;
-    font-weight: 800;
-}
-
-
-.toolbar-divider {
-    width: 1px;
-    height: 28px;
-
-    margin: 0 8px;
-
-    background: #303845;
-}
-
-
-.toolbar-button {
-    width: 38px;
-    height: 38px;
-
-    border: none;
-    border-radius: 7px;
-
-    background: transparent;
-
-    color: #dbe3ef;
-
-    font-size: 22px;
-
+button {
     cursor: pointer;
 }
-
-
-.toolbar-button:hover {
-    background: #202733;
-}
-
-
-.toolbar-button:disabled {
-    opacity: 0.35;
-    cursor: default;
-}
-
-
-.page-counter {
-    display: flex;
-    align-items: center;
-
-    gap: 6px;
-
-    color: #aeb8c7;
-
-    font-size: 14px;
-}
-
-
-#pageNumber {
-    width: 42px;
-    height: 32px;
-
-    border: 1px solid #303845;
-    border-radius: 6px;
-
-    background: #0d1219;
-
-    color: #ffffff;
-
-    text-align: center;
-}
-
-
-.zoom-level {
-    min-width: 52px;
-
-    text-align: center;
-
-    color: #c9d2df;
-
-    font-size: 14px;
-}
-
-
-.login-toolbar-button {
-    height: 38px;
-
-    padding: 0 16px;
-
-    border: 1px solid #4d8dff;
-
-    border-radius: 7px;
-
-    background: #4d8dff;
-
-    color: white;
-
-    font-weight: 600;
-
-    cursor: pointer;
-}
-
-
-.login-toolbar-button:hover {
-    background: #3e7de8;
-}
-
-
-/* =========================================
-   PDF VIEWER
-========================================= */
-
-.pdf-viewer {
-    position: relative;
-
-    flex: 1;
-
-    overflow: auto;
-
-    background:
-        #252525;
-}
-
-
-.pdf-pages {
-    min-height: 100%;
-
-    padding:
-        28px
-        20px
-        60px;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    gap: 24px;
-}
-
-
-.pdf-page {
-    position: relative;
-
-    background: white;
-
-    box-shadow:
-        0 3px 15px
-        rgba(0, 0, 0, 0.45);
-}
-
-
-.pdf-page canvas {
-    display: block;
-}
-
-
-/* =========================================
-   LOADING
-========================================= */
-
-.pdf-loading {
-    position: absolute;
-
-    inset: 0;
-
-    display: flex;
-    flex-direction: column;
-
-    align-items: center;
-    justify-content: center;
-
-    background: #252525;
-
-    color: #cbd5e1;
-
-    z-index: 10;
-}
-
-
-.pdf-loading.hidden {
-    display: none;
-}
-
-
-.loading-spinner {
-    width: 38px;
-    height: 38px;
-
-    border:
-        3px solid #3b4350;
-
-    border-top-color:
-        #4d8dff;
-
-    border-radius: 50%;
-
-    animation:
-        spin 0.8s linear infinite;
-}
-
-
-@keyframes spin {
-
-    to {
-        transform: rotate(360deg);
-    }
-
-}
-
-
-/* =========================================
-   LOGIN OVERLAY
-========================================= */
 
 .hidden {
     display: none !important;
 }
 
 
-.login-overlay {
-    position: fixed;
+/* =========================================================
+   PDF VIEWER
+   =========================================================
+   
+   The PDF viewer is PUBLIC.
+   
+   #pdfViewport is the scrolling area.
+   #pdfPages contains ALL rendered pages.
+   
+   This is intentionally different from a one-page viewer:
+   
+       page 1
+       page 2
+       page 3
+       page 4
+       ...
+   
+   The user can therefore stop anywhere between pages,
+   exactly like a continuous document viewer.
+   ========================================================= */
 
+
+/* =========================================================
+   PDF VIEWER SCREEN
+   ========================================================= */
+
+.pdf-viewer-screen {
+    position: fixed;
     inset: 0;
 
+    z-index: 1;
+
     display: flex;
+    flex-direction: column;
 
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    height: 100vh;
 
-    background:
-        rgba(0, 0, 0, 0.72);
+    overflow: hidden;
 
-    backdrop-filter:
-        blur(7px);
-
-    z-index: 100;
+    background: #242424;
 }
 
 
-.login-modal {
+/* =========================================================
+   PDF TOOLBAR
+   ========================================================= */
+
+.pdf-toolbar {
     position: relative;
 
-    width: min(
-        420px,
-        calc(100% - 32px)
-    );
+    z-index: 10;
 
-    padding: 34px;
+    flex-shrink: 0;
 
-    border:
-        1px solid #303947;
+    height: 56px;
 
-    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
-    background:
-        #11161e;
+    padding: 0 14px;
 
-    box-shadow:
-        0 25px 80px
-        rgba(0, 0, 0, 0.65);
+    background: #323232;
+    color: #f1f1f1;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+    user-select: none;
 }
 
 
-.login-close {
+/* =========================================================
+   PDF TOOLBAR LEFT / CENTER / RIGHT
+   ========================================================= */
+
+.pdf-toolbar-left,
+.pdf-toolbar-center,
+.pdf-toolbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.pdf-toolbar-left {
+    gap: 8px;
+
+    min-width: 180px;
+}
+
+.pdf-toolbar-center {
     position: absolute;
 
-    top: 14px;
-    right: 14px;
+    left: 50%;
+    transform: translateX(-50%);
 
+    max-width: 45%;
+
+    overflow: hidden;
+}
+
+.pdf-toolbar-right {
+    gap: 5px;
+
+    min-width: 180px;
+
+    justify-content: flex-end;
+}
+
+
+/* =========================================================
+   PDF TOOLBAR BUTTON
+   ========================================================= */
+
+.pdf-toolbar-button {
     width: 34px;
     height: 34px;
 
-    border: none;
-    border-radius: 7px;
-
-    background: transparent;
-
-    color: #aab4c3;
-
-    font-size: 24px;
-
-    cursor: pointer;
-}
-
-
-.login-close:hover {
-    background: #202733;
-    color: white;
-}
-
-
-.login-logo {
-    width: 54px;
-    height: 54px;
-
     display: flex;
     align-items: center;
     justify-content: center;
 
-    margin-bottom: 18px;
+    padding: 0;
 
-    border-radius: 14px;
+    border: 0;
+    border-radius: 5px;
 
-    background: #4d8dff;
+    background: transparent;
 
-    font-weight: 800;
+    color: #e8e8e8;
+
+    font-size: 22px;
+    line-height: 1;
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.pdf-toolbar-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.pdf-toolbar-button:active {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.pdf-toolbar-button:disabled {
+    opacity: 0.35;
+    cursor: default;
 }
 
 
-.login-modal h1 {
-    margin: 0 0 8px;
+/* =========================================================
+   PDF PAGE NUMBER
+   ========================================================= */
 
-    font-size: 25px;
+.pdf-page-number {
+    min-width: 55px;
+
+    text-align: center;
+
+    color: #f1f1f1;
+
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
 }
 
 
-.login-subtitle {
-    margin:
-        0 0 25px;
+/* =========================================================
+   PDF DOCUMENT TITLE
+   ========================================================= */
 
-    color: #8f9bad;
+.pdf-document-title {
+    max-width: 100%;
+
+    overflow: hidden;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    color: #f1f1f1;
+
+    font-size: 13px;
+    font-weight: 500;
 }
 
 
-.login-field {
-    margin-bottom: 18px;
+/* =========================================================
+   PDF ZOOM
+   ========================================================= */
+
+.pdf-zoom-value {
+    min-width: 48px;
+
+    text-align: center;
+
+    color: #f1f1f1;
+
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
 }
 
 
-.login-field label {
+/* =========================================================
+   PDF VIEWPORT
+   =========================================================
+   
+   IMPORTANT:
+   
+   This is the ONLY element that should vertically scroll.
+   The individual pages must NOT scroll independently.
+   ========================================================= */
+
+.pdf-viewport {
+    position: relative;
+
+    flex: 1;
+
+    width: 100%;
+    height: calc(100vh - 56px);
+
+    overflow-x: auto;
+    overflow-y: auto;
+
+    background: #242424;
+
+    scroll-behavior: auto;
+
+    overscroll-behavior: contain;
+
+    scrollbar-gutter: stable;
+}
+
+
+/* =========================================================
+   PDF PAGES CONTAINER
+   ========================================================= */
+
+.pdf-pages {
+    width: 100%;
+
+    min-height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding: 20px 0 40px;
+
+    gap: 14px;
+}
+
+
+/* =========================================================
+   INDIVIDUAL PDF PAGE
+   =========================================================
+   
+   script.js will create one .pdf-page element for every
+   PDF page.
+   
+   Example:
+   
+       .pdf-pages
+          ├── .pdf-page
+          ├── .pdf-page
+          ├── .pdf-page
+          └── ...
+   
+   Because all pages exist together, the user can see:
+   
+       bottom of page 1
+       ----------------
+       top of page 2
+   
+   at the same time.
+   ========================================================= */
+
+.pdf-page {
+    position: relative;
+
+    flex-shrink: 0;
+
     display: block;
 
-    margin-bottom: 7px;
-
-    color: #cbd5e1;
-
-    font-size: 14px;
-}
-
-
-.login-field input {
-    width: 100%;
-    height: 46px;
-
-    padding: 0 13px;
-
-    border:
-        1px solid #303947;
-
-    border-radius: 8px;
-
-    outline: none;
-
-    background: #0b1017;
-
-    color: white;
-
-    font-size: 15px;
-}
-
-
-.login-field input:focus {
-    border-color:
-        #4d8dff;
+    background: #ffffff;
 
     box-shadow:
-        0 0 0 3px
-        rgba(77, 141, 255, 0.12);
+        0 2px 12px rgba(0, 0, 0, 0.35);
+
+    border-radius: 1px;
+
+    overflow: hidden;
 }
 
 
-.login-error {
-    min-height: 20px;
+/* =========================================================
+   PDF CANVAS
+   ========================================================= */
 
-    margin:
-        0 0 10px;
+.pdf-page canvas {
+    display: block;
 
-    color: #ff6b6b;
+    width: 100%;
+    height: auto;
+
+    background: #ffffff;
+}
+
+
+/* =========================================================
+   PDF PAGE LOADING
+   ========================================================= */
+
+.pdf-page-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 200px;
+
+    color: #777;
+
+    background: #ffffff;
 
     font-size: 13px;
 }
 
 
-.login-submit {
-    width: 100%;
-    height: 46px;
+/* =========================================================
+   PDF PAGE SHADOW
+   ========================================================= */
 
-    border: none;
+.pdf-page::after {
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+
+/* =========================================================
+   PDF LOADING OVERLAY
+   ========================================================= */
+
+.pdf-loading {
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 5;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 14px;
+
+    background: #242424;
+
+    color: #d6d6d6;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   PDF LOADING SPINNER
+   ========================================================= */
+
+.pdf-loading-spinner {
+    width: 34px;
+    height: 34px;
+
+    border: 3px solid rgba(255, 255, 255, 0.15);
+
+    border-top-color: #ffffff;
+
+    border-radius: 50%;
+
+    animation:
+        pdfSpin 0.8s linear infinite;
+}
+
+@keyframes pdfSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =========================================================
+   PDF ERROR
+   ========================================================= */
+
+.pdf-error {
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 6;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 30px;
+
+    background: #242424;
+
+    color: #f1f1f1;
+
+    text-align: center;
+}
+
+.pdf-error strong {
+    font-size: 16px;
+}
+
+.pdf-error span {
+    color: #a7a7a7;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   PDF SCROLLBAR
+   ========================================================= */
+
+.pdf-viewport::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.pdf-viewport::-webkit-scrollbar-track {
+    background: #242424;
+}
+
+.pdf-viewport::-webkit-scrollbar-thumb {
+    background: #555;
+
+    border-radius: 10px;
+
+    border: 3px solid #242424;
+}
+
+.pdf-viewport::-webkit-scrollbar-thumb:hover {
+    background: #686868;
+}
+
+
+/* =========================================================
+   LOGIN OVERLAY
+   ========================================================= */
+
+.login-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1000;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(0, 0, 0, 0.72);
+
+    backdrop-filter: blur(8px);
+}
+
+
+/* =========================================================
+   LOGIN MODAL
+   ========================================================= */
+
+.login-modal {
+    position: relative;
+
+    width: 100%;
+    max-width: 400px;
+
+    padding: 36px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: 20px;
+
+    box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.55);
+}
+
+
+/* =========================================================
+   LOGIN CLOSE
+   ========================================================= */
+
+.login-close {
+    position: absolute;
+
+    top: 12px;
+    right: 14px;
+
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
     border-radius: 8px;
 
-    background: #4d8dff;
+    background: transparent;
+
+    color: var(--muted);
+
+    font-size: 24px;
+
+    line-height: 1;
+
+    transition: 0.2s;
+}
+
+.login-close:hover {
+    background: var(--surface-2);
+
+    color: var(--text);
+}
+
+
+/* =========================================================
+   LOGIN LOGO
+   ========================================================= */
+
+.login-logo {
+    width: 58px;
+    height: 58px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 18px;
+
+    border-radius: 12px;
+
+    background: var(--accent);
 
     color: white;
 
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 20px;
 
-    cursor: pointer;
+    font-weight: 800;
 }
 
 
-.login-submit:hover {
-    background: #3e7de8;
-}
+/* =========================================================
+   LOGIN TITLE
+   ========================================================= */
 
-
-.login-hint {
-    margin:
-        20px 0 0;
-
+.login-modal h1 {
     text-align: center;
 
-    color: #7f8a9b;
+    font-size: 26px;
+
+    margin-bottom: 7px;
+}
+
+.login-subtitle {
+    text-align: center;
+
+    color: var(--muted);
+
+    font-size: 14px;
+
+    margin-bottom: 28px;
+}
+
+
+/* =========================================================
+   LOGIN FORM
+   ========================================================= */
+
+#loginForm {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 16px;
+}
+
+.login-field {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.login-field label {
+    color: var(--muted);
+
+    font-size: 13px;
+}
+
+.login-field input {
+    width: 100%;
+
+    padding: 13px 14px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 10px;
+
+    outline: none;
+
+    background: var(--surface-2);
+
+    color: var(--text);
+
+    font-size: 14px;
+
+    transition: 0.2s;
+}
+
+.login-field input::placeholder {
+    color: #667080;
+}
+
+.login-field input:focus {
+    border-color: var(--accent);
+
+    box-shadow:
+        0 0 0 2px rgba(79, 140, 255, 0.12);
+}
+
+
+/* =========================================================
+   LOGIN ERROR
+   ========================================================= */
+
+.login-error {
+    min-height: 18px;
+
+    margin-top: -4px;
+
+    color: var(--danger);
+
+    font-size: 13px;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   LOGIN BUTTON
+   ========================================================= */
+
+.login-submit {
+    width: 100%;
+
+    padding: 13px;
+
+    border: 0;
+
+    border-radius: 10px;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-weight: 700;
+
+    transition: 0.2s;
+}
+
+.login-submit:hover {
+    background: var(--accent-hover);
+}
+
+.login-submit:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   LOGIN HINT
+   ========================================================= */
+
+.login-hint {
+    margin-top: 20px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+    text-align: center;
+}
+
+.login-hint strong {
+    color: var(--text);
+}
+
+
+/* =========================================================
+   CHAT
+   ========================================================= */
+
+.chat-screen {
+    height: 100vh;
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+
+/* =========================================================
+   TOPBAR
+   ========================================================= */
+
+.topbar {
+    min-height: 70px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 0 20px;
+
+    background: var(--surface);
+
+    border-bottom: 1px solid var(--border);
+}
+
+.brand {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+}
+
+.small-logo {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-size: 14px;
+
+    font-weight: 800;
+
+    border-radius: 12px;
+}
+
+.brand h2 {
+    font-size: 17px;
+}
+
+.brand span {
+    color: var(--muted);
 
     font-size: 12px;
 }
 
+.online-info {
+    display: flex;
 
-.login-hint strong {
-    color: #cbd5e1;
+    align-items: center;
+
+    gap: 7px;
+
+    margin-left: auto;
+
+    color: var(--muted);
+
+    font-size: 13px;
+}
+
+.online-dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: var(--success);
+
+    box-shadow:
+        0 0 8px rgba(74, 222, 128, 0.7);
+}
+
+.user-info {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    color: var(--muted);
+
+    font-size: 14px;
+}
+
+.leave-button {
+    padding: 8px 12px;
+
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: var(--danger);
+
+    border: 1px solid rgba(255, 93, 108, 0.3);
+
+    transition: 0.2s;
+}
+
+.leave-button:hover {
+    background: rgba(255, 93, 108, 0.08);
 }
 
 
-/* =========================================
+/* =========================================================
+   MESSAGES
+   ========================================================= */
+
+.messages {
+    flex: 1;
+
+    overflow-y: auto;
+
+    padding: 24px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+.message {
+    max-width: min(700px, 80%);
+
+    padding: 12px 15px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: 14px;
+
+    align-self: flex-start;
+}
+
+.message.mine {
+    align-self: flex-end;
+
+    background: var(--accent);
+
+    border-color: var(--accent);
+}
+
+.message-header {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 7px;
+}
+
+.message-user {
+    font-size: 13px;
+
+    font-weight: 700;
+}
+
+.message-time {
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+.message.mine .message-time {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.message-text {
+    font-size: 14px;
+
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+
+    overflow-wrap: anywhere;
+}
+
+.message-text a {
+    color: inherit;
+
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   MESSAGE ACTIONS
+   ========================================================= */
+
+.message-actions {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 6px;
+
+    margin-top: 9px;
+}
+
+.copy-button {
+    padding: 5px 9px;
+
+    border-radius: 7px;
+
+    border: 1px solid var(--border);
+
+    background: var(--surface-2);
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+    cursor: pointer;
+}
+
+.copy-button:hover {
+    color: var(--text);
+}
+
+.message.mine .copy-button {
+    background: rgba(255, 255, 255, 0.12);
+
+    border-color: rgba(255, 255, 255, 0.2);
+
+    color: white;
+}
+
+
+/* =========================================================
+   CODE MESSAGE
+   ========================================================= */
+
+.code-message {
+    width: 100%;
+
+    max-width: 750px;
+
+    padding: 0;
+
+    overflow: hidden;
+
+    background: #0b0f14;
+
+    border-color: #303a48;
+}
+
+.code-message.mine {
+    background: #0b0f14;
+
+    border-color: #303a48;
+}
+
+.code-header {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 8px 12px;
+
+    background: #111720;
+
+    border-bottom: 1px solid #303a48;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+.code-content {
+    display: block;
+
+    padding: 14px;
+
+    overflow-x: auto;
+
+    color: #e8edf5;
+
+    font-family:
+        "Cascadia Code",
+        "Consolas",
+        "Courier New",
+        monospace;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+
+    white-space: pre;
+
+    tab-size: 4;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.empty-state {
+    margin: auto;
+
+    text-align: center;
+
+    color: var(--muted);
+}
+
+.empty-state strong {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: var(--text);
+}
+
+
+/* =========================================================
+   MESSAGE FORM
+   ========================================================= */
+
+.message-form {
+    display: flex;
+
+    align-items: flex-end;
+
+    gap: 8px;
+
+    padding: 12px 20px;
+
+    background: var(--surface);
+
+    border-top: 1px solid var(--border);
+}
+
+.input-area {
+    position: relative;
+
+    flex: 1;
+
+    min-width: 0;
+}
+
+#messageInput {
+    width: 100%;
+
+    min-height: 46px;
+    max-height: 220px;
+
+    resize: none;
+
+    padding: 13px 15px;
+
+    border-radius: 10px;
+
+    border: 1px solid var(--border);
+
+    background: var(--surface-2);
+
+    color: var(--text);
+
+    outline: none;
+
+    font-size: 14px;
+
+    line-height: 1.5;
+
+    font-family: inherit;
+}
+
+#messageInput:focus {
+    border-color: var(--accent);
+}
+
+.code-indicator {
+    position: absolute;
+
+    top: 7px;
+    right: 8px;
+
+    padding: 3px 7px;
+
+    border-radius: 5px;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    pointer-events: none;
+}
+
+.tool-button {
+    height: 46px;
+
+    padding: 0 13px;
+
+    border-radius: 10px;
+
+    background: var(--surface-2);
+
+    border: 1px solid var(--border);
+
+    color: var(--muted);
+
+    white-space: nowrap;
+}
+
+.tool-button:hover:not(:disabled),
+.tool-button.active {
+    color: white;
+
+    border-color: var(--accent);
+
+    background: rgba(79, 140, 255, 0.15);
+}
+
+.tool-button:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+#sendButton {
+    height: 46px;
+
+    padding: 0 20px;
+
+    border-radius: 10px;
+
+    border: 0;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-weight: 700;
+}
+
+#sendButton:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+#sendButton:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   CHAT SCROLLBAR
+   ========================================================= */
+
+.messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+    background: var(--border);
+
+    border-radius: 10px;
+}
+
+.messages::-webkit-scrollbar-thumb:hover {
+    background: #344052;
+}
+
+
+/* =========================================================
+   OLD PDF DOCUMENT CARD
+   =========================================================
+   
+   Kept for compatibility with any existing elements.
+   It is NOT the main PDF viewer.
+   ========================================================= */
+
+.pdf-section {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin: 12px 20px 0;
+    padding: 12px 15px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+}
+
+.pdf-info {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 0;
+}
+
+.pdf-icon {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 42px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    border-radius: 9px;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.pdf-details {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+    min-width: 0;
+}
+
+.pdf-details strong {
+    font-size: 13px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.pdf-details span {
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+.pdf-button {
+    flex-shrink: 0;
+
+    padding: 8px 13px;
+
+    border-radius: 8px;
+
+    background: var(--accent);
+
+    color: white;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    text-decoration: none;
+
+    transition: 0.2s;
+}
+
+.pdf-button:hover {
+    background: var(--accent-hover);
+}
+
+
+/* =========================================================
    MOBILE
-========================================= */
+   ========================================================= */
 
 @media (max-width: 700px) {
 
-    .brand span {
-        display: none;
+    /* PDF */
+
+    .pdf-toolbar {
+        height: 52px;
+
+        padding: 0 8px;
     }
 
-
-    .toolbar-center {
-        display: none;
+    .pdf-viewport {
+        height: calc(100vh - 52px);
     }
-
 
     .pdf-pages {
-        padding:
-            15px
-            8px
-            40px;
+        padding-top: 10px;
+        padding-bottom: 25px;
+
+        gap: 8px;
+    }
+
+    .pdf-toolbar-left,
+    .pdf-toolbar-right {
+        min-width: auto;
+    }
+
+    .pdf-toolbar-center {
+        max-width: 35%;
+    }
+
+    .pdf-toolbar-button {
+        width: 32px;
+        height: 32px;
+    }
+
+    .pdf-document-title {
+        font-size: 12px;
     }
 
 
-    .pdf-page {
-        max-width: 100%;
+    /* Login */
+
+    .login-modal {
+        padding: 30px 24px;
     }
 
+
+    /* Chat */
+
+    .topbar {
+        padding: 0 12px;
+    }
+
+    .online-info {
+        margin-left: 0;
+    }
+
+    .user-info {
+        gap: 6px;
+    }
+
+    .messages {
+        padding: 15px;
+    }
+
+    .message {
+        max-width: 90%;
+    }
+
+    .message-form {
+        padding: 10px;
+    }
+
+    .tool-button {
+        padding: 0 9px;
+    }
+
+    #sendButton {
+        padding: 0 15px;
+    }
+
+
+    /* Old PDF card */
+
+    .pdf-section {
+        margin: 10px 10px 0;
+
+        padding: 10px;
+    }
+
+    .pdf-details strong {
+        max-width: 180px;
+    }
+
+    .pdf-button {
+        padding: 8px 10px;
+    }
+}
+
+
+@media (max-width: 480px) {
+
+    /* PDF */
+
+    .pdf-toolbar-left {
+        gap: 2px;
+    }
+
+    .pdf-toolbar-right {
+        gap: 2px;
+    }
+
+    .pdf-page-number {
+        min-width: 45px;
+
+        font-size: 12px;
+    }
+
+    .pdf-zoom-value {
+        min-width: 40px;
+
+        font-size: 12px;
+    }
+
+    .pdf-toolbar-center {
+        display: none;
+    }
+
+
+    /* Login */
+
+    .login-modal {
+        padding: 28px 20px;
+    }
+
+    .login-modal h1 {
+        font-size: 23px;
+    }
+
+
+    /* Chat */
+
+    .brand h2 {
+        font-size: 15px;
+    }
+
+    .online-info {
+        font-size: 11px;
+    }
+
+    .tool-button {
+        font-size: 11px;
+    }
+
+    #sendButton {
+        font-size: 12px;
+    }
 }
