@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -12,31 +13,10 @@
 
     <title>LabChat</title>
 
-
-    <!-- =====================================================
-         LABCHAT STYLESHEET
-    ====================================================== -->
-
     <link
         rel="stylesheet"
         href="style.css"
     >
-
-
-    <!-- =====================================================
-         PDF.JS
-
-         PDF.js is loaded globally so script.js can use:
-
-         pdfjsLib.getDocument(...)
-
-         The worker is configured in script.js.
-    ====================================================== -->
-
-    <script
-        src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
-        type="module"
-    ></script>
 
 </head>
 
@@ -44,20 +24,14 @@
 <body>
 
 
-<!-- =========================================================
-     PUBLIC PDF VIEWER
-
-     THIS IS THE DEFAULT SCREEN.
-
-     When the LabChat URL is opened, this screen is visible
-     immediately.
-
-     The actual PDF is loaded by script.js from:
-
-     https://raw.githubusercontent.com/Paraallax/labchat/
-     c985342d44c142b7a1c581fb632e1e8bb2a3f75a/
-     XI-AI-UNIT-3-Python-Programming.pdf
-========================================================= -->
+<!-- =====================================================
+     PDF VIEWER
+     
+     Public document viewer.
+     
+     All PDF pages are rendered continuously inside
+     #pdfPages, allowing natural scrolling between pages.
+====================================================== -->
 
 <section
     id="pdfViewerScreen"
@@ -65,18 +39,19 @@
 >
 
 
-    <!-- =====================================================
+    <!-- =================================================
          PDF TOOLBAR
-    ====================================================== -->
+    ================================================== -->
 
     <header class="pdf-toolbar">
 
 
-        <!-- =================================================
-             LEFT SIDE
-        ================================================== -->
+        <!-- LEFT -->
 
         <div class="pdf-toolbar-left">
+
+
+            <!-- PREVIOUS PAGE -->
 
             <button
                 id="pdfPreviousButton"
@@ -89,6 +64,8 @@
             </button>
 
 
+            <!-- CURRENT PAGE -->
+
             <span
                 id="pdfPageNumber"
                 class="pdf-page-number"
@@ -96,6 +73,8 @@
                 1 / 1
             </span>
 
+
+            <!-- NEXT PAGE -->
 
             <button
                 id="pdfNextButton"
@@ -107,6 +86,7 @@
                 ›
             </button>
 
+
         </div>
 
 
@@ -116,21 +96,26 @@
 
         <div class="pdf-toolbar-center">
 
+
             <span
                 id="pdfDocumentTitle"
                 class="pdf-document-title"
             >
-                Class 11 Python Programming
+                Lab Document
             </span>
+
 
         </div>
 
 
         <!-- =================================================
-             RIGHT SIDE
+             RIGHT
         ================================================== -->
 
         <div class="pdf-toolbar-right">
+
+
+            <!-- ZOOM OUT -->
 
             <button
                 id="pdfZoomOutButton"
@@ -143,6 +128,8 @@
             </button>
 
 
+            <!-- ZOOM VALUE -->
+
             <span
                 id="pdfZoomValue"
                 class="pdf-zoom-value"
@@ -150,6 +137,8 @@
                 100%
             </span>
 
+
+            <!-- ZOOM IN -->
 
             <button
                 id="pdfZoomInButton"
@@ -162,6 +151,8 @@
             </button>
 
 
+            <!-- FIT PAGE -->
+
             <button
                 id="pdfFitButton"
                 class="pdf-toolbar-button"
@@ -172,23 +163,45 @@
                 ⛶
             </button>
 
+
         </div>
+
 
     </header>
 
 
-    <!-- =====================================================
+
+    <!-- =================================================
          PDF VIEWPORT
-    ====================================================== -->
+         
+         This is now a CONTINUOUS scrolling viewport.
+         
+         Every rendered page will be placed inside
+         #pdfPages vertically.
+    ================================================== -->
 
     <main
         id="pdfViewport"
         class="pdf-viewport"
     >
 
-        <!--
-            PDF pages are created dynamically by script.js.
-        -->
+
+        <!-- =================================================
+             CONTINUOUS PDF PAGE CONTAINER
+             
+             JavaScript will create:
+
+             .pdf-page
+                 canvas
+
+             .pdf-page
+                 canvas
+
+             .pdf-page
+                 canvas
+
+             ...for every page in the PDF.
+        ================================================== -->
 
         <div
             id="pdfPages"
@@ -196,8 +209,9 @@
         ></div>
 
 
+
         <!-- =================================================
-             LOADING STATE
+             PDF LOADING
         ================================================== -->
 
         <div
@@ -205,7 +219,10 @@
             class="pdf-loading"
         >
 
-            <div class="pdf-loading-spinner"></div>
+            <div
+                class="pdf-loading-spinner"
+            ></div>
+
 
             <span>
                 Loading document...
@@ -214,8 +231,9 @@
         </div>
 
 
+
         <!-- =================================================
-             ERROR STATE
+             PDF ERROR
         ================================================== -->
 
         <div
@@ -228,40 +246,29 @@
             </strong>
 
 
-            <span id="pdfErrorMessage">
+            <span
+                id="pdfErrorMessage"
+            >
                 Please try again.
             </span>
 
+
         </div>
 
+
     </main>
+
 
 </section>
 
 
 
-<!-- =========================================================
+<!-- =====================================================
      LOGIN OVERLAY
 
-     IMPORTANT:
-
-     Ctrl + Shift + L opens this popup.
-
-     The SAME login system supports:
-
-     1. Normal LabChat users
-     2. Admin accounts
-
-     script.js checks the authenticated profile role.
-
-     If role = "admin":
-         ../admin/admin.html
-
-     If role = "user":
-         LabChat chat interface
-
-     Therefore we DO NOT create separate login popups here.
-========================================================= -->
+     Opens with:
+     Ctrl + Shift + L
+====================================================== -->
 
 <div
     id="loginOverlay"
@@ -275,9 +282,7 @@
     >
 
 
-        <!-- =================================================
-             CLOSE
-        ================================================== -->
+        <!-- CLOSE -->
 
         <button
             id="closeLoginButton"
@@ -289,13 +294,13 @@
         </button>
 
 
-        <!-- =================================================
-             LOGO
-        ================================================== -->
+
+        <!-- LOGO -->
 
         <div class="login-logo">
             LC
         </div>
+
 
 
         <h1>
@@ -308,6 +313,7 @@
         </p>
 
 
+
         <!-- =================================================
              LOGIN FORM
         ================================================== -->
@@ -317,11 +323,10 @@
         >
 
 
-            <!-- =============================================
-                 EMAIL / ID
-            ============================================== -->
+            <!-- EMAIL / ID -->
 
             <div class="login-field">
+
 
                 <label
                     for="loginIdentifier"
@@ -338,14 +343,15 @@
                     required
                 >
 
+
             </div>
 
 
-            <!-- =============================================
-                 PASSWORD
-            ============================================== -->
+
+            <!-- PASSWORD -->
 
             <div class="login-field">
+
 
                 <label
                     for="loginPassword"
@@ -362,12 +368,12 @@
                     required
                 >
 
+
             </div>
 
 
-            <!-- =============================================
-                 ERROR
-            ============================================== -->
+
+            <!-- ERROR -->
 
             <p
                 id="loginError"
@@ -375,9 +381,8 @@
             ></p>
 
 
-            <!-- =============================================
-                 LOGIN BUTTON
-            ============================================== -->
+
+            <!-- LOGIN -->
 
             <button
                 id="loginButton"
@@ -387,25 +392,22 @@
                 Login
             </button>
 
+
         </form>
 
+
     </div>
+
 
 </div>
 
 
 
-<!-- =========================================================
-     LABCHAT CHAT APPLICATION
+<!-- =====================================================
+     LABCHAT APPLICATION
 
-     Hidden initially.
-
-     It becomes active after a normal user successfully
-     authenticates.
-
-     Admin accounts are redirected to admin/admin.html by
-     script.js.
-========================================================= -->
+     Hidden until successful authentication.
+====================================================== -->
 
 <section
     id="chatScreen"
@@ -413,18 +415,17 @@
 >
 
 
-    <!-- =====================================================
+    <!-- =================================================
          CHAT TOPBAR
-    ====================================================== -->
+    ================================================== -->
 
     <header class="topbar">
 
 
-        <!-- =================================================
-             BRAND
-        ================================================== -->
+        <!-- BRAND -->
 
         <div class="brand">
+
 
             <div class="small-logo">
                 LC
@@ -438,20 +439,23 @@
                 </h2>
 
 
-                <span id="connectionStatus">
+                <span
+                    id="connectionStatus"
+                >
                     Connecting...
                 </span>
 
             </div>
 
+
         </div>
 
 
-        <!-- =================================================
-             ONLINE USERS
-        ================================================== -->
+
+        <!-- ONLINE USERS -->
 
         <div class="online-info">
+
 
             <span class="online-dot"></span>
 
@@ -460,14 +464,15 @@
                 0 online
             </span>
 
+
         </div>
 
 
-        <!-- =================================================
-             CURRENT USER
-        ================================================== -->
+
+        <!-- CURRENT USER -->
 
         <div class="user-info">
+
 
             <span id="currentUser">
                 Guest
@@ -482,15 +487,17 @@
                 Sign Out
             </button>
 
+
         </div>
+
 
     </header>
 
 
 
-    <!-- =====================================================
+    <!-- =================================================
          MESSAGES
-    ====================================================== -->
+    ================================================== -->
 
     <main
         id="messages"
@@ -500,9 +507,9 @@
 
 
 
-    <!-- =====================================================
+    <!-- =================================================
          MESSAGE FORM
-    ====================================================== -->
+    ================================================== -->
 
     <form
         id="messageForm"
@@ -513,9 +520,7 @@
         <div class="input-area">
 
 
-            <!-- =============================================
-                 CODE MODE INDICATOR
-            ============================================== -->
+            <!-- CODE MODE INDICATOR -->
 
             <div
                 id="codeIndicator"
@@ -525,9 +530,8 @@
             </div>
 
 
-            <!-- =============================================
-                 MESSAGE INPUT
-            ============================================== -->
+
+            <!-- MESSAGE INPUT -->
 
             <textarea
                 id="messageInput"
@@ -538,12 +542,12 @@
                 disabled
             ></textarea>
 
+
         </div>
 
 
-        <!-- =================================================
-             CODE BUTTON
-        ================================================== -->
+
+        <!-- CODE BUTTON -->
 
         <button
             type="button"
@@ -555,9 +559,8 @@
         </button>
 
 
-        <!-- =================================================
-             SEND BUTTON
-        ================================================== -->
+
+        <!-- SEND BUTTON -->
 
         <button
             type="submit"
@@ -567,19 +570,34 @@
             Send
         </button>
 
+
     </form>
+
 
 </section>
 
 
 
-<!-- =========================================================
+<!-- =====================================================
+     PDF.JS
+
+     PDF.js is required to render the PDF pages directly
+     inside the LabChat viewer.
+
+     IMPORTANT:
+     The library is loaded BEFORE script.js.
+====================================================== -->
+
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
+    type="module"
+></script>
+
+
+
+<!-- =====================================================
      SUPABASE
-
-     Loaded before script.js because script.js uses:
-
-         window.supabase.createClient(...)
-========================================================= -->
+====================================================== -->
 
 <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
@@ -587,26 +605,12 @@
 
 
 
-<!-- =========================================================
-     LABCHAT APPLICATION SCRIPT
+<!-- =====================================================
+     LABCHAT JAVASCRIPT
 
-     IMPORTANT:
-
-     script.js is a module because our PDF.js integration
-     will use the PDF.js module API.
-
-     It will also continue handling:
-
-     - Ctrl + Shift + L
-     - Login
-     - Admin detection
-     - User detection
-     - Chat
-     - Realtime
-     - Presence
-     - PDF loading
-     - PDF controls
-========================================================= -->
+     script.js contains the PDF renderer, authentication,
+     chat, realtime, presence and keyboard controls.
+====================================================== -->
 
 <script
     type="module"
