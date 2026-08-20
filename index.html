@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 
@@ -12,10 +13,31 @@
 
     <title>LabChat</title>
 
+
+    <!-- =====================================================
+         LABCHAT STYLESHEET
+    ====================================================== -->
+
     <link
         rel="stylesheet"
         href="style.css"
     >
+
+
+    <!-- =====================================================
+         PDF.JS
+
+         PDF.js is loaded globally so script.js can use:
+
+         pdfjsLib.getDocument(...)
+
+         The worker is configured in script.js.
+    ====================================================== -->
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
+        type="module"
+    ></script>
 
 </head>
 
@@ -23,468 +45,577 @@
 <body>
 
 
-    <!-- =====================================================
-         PDF VIEWER
-         Public document viewer.
-    ====================================================== -->
+<!-- =========================================================
+     PUBLIC PDF VIEWER
 
-    <section
-        id="pdfViewerScreen"
-        class="pdf-viewer-screen"
-    >
+     THIS IS THE DEFAULT SCREEN.
 
-        <!-- PDF TOOLBAR -->
+     When the LabChat URL is opened, this screen is visible
+     immediately.
 
-        <header class="pdf-toolbar">
+     The actual PDF is loaded by script.js from:
 
-            <!-- LEFT -->
+     https://raw.githubusercontent.com/Paraallax/labchat/
+     c985342d44c142b7a1c581fb632e1e8bb2a3f75a/
+     XI-AI-UNIT-3-Python-Programming.pdf
+========================================================= -->
 
-            <div class="pdf-toolbar-left">
-
-                <button
-                    id="pdfPreviousButton"
-                    class="pdf-toolbar-button"
-                    type="button"
-                    title="Previous page"
-                    aria-label="Previous page"
-                >
-                    ‹
-                </button>
-
-
-                <span
-                    id="pdfPageNumber"
-                    class="pdf-page-number"
-                >
-                    1 / 1
-                </span>
-
-
-                <button
-                    id="pdfNextButton"
-                    class="pdf-toolbar-button"
-                    type="button"
-                    title="Next page"
-                    aria-label="Next page"
-                >
-                    ›
-                </button>
-
-            </div>
-
-
-            <!-- CENTER -->
-
-            <div class="pdf-toolbar-center">
-
-                <span
-                    id="pdfDocumentTitle"
-                    class="pdf-document-title"
-                >
-                    Lab Document
-                </span>
-
-            </div>
-
-
-            <!-- RIGHT -->
-
-            <div class="pdf-toolbar-right">
-
-                <button
-                    id="pdfZoomOutButton"
-                    class="pdf-toolbar-button"
-                    type="button"
-                    title="Zoom out"
-                    aria-label="Zoom out"
-                >
-                    −
-                </button>
-
-
-                <span
-                    id="pdfZoomValue"
-                    class="pdf-zoom-value"
-                >
-                    100%
-                </span>
-
-
-                <button
-                    id="pdfZoomInButton"
-                    class="pdf-toolbar-button"
-                    type="button"
-                    title="Zoom in"
-                    aria-label="Zoom in"
-                >
-                    +
-                </button>
-
-
-                <button
-                    id="pdfFitButton"
-                    class="pdf-toolbar-button"
-                    type="button"
-                    title="Fit page"
-                    aria-label="Fit page"
-                >
-                    ⛶
-                </button>
-
-            </div>
-
-        </header>
-
-
-        <!-- PDF VIEWPORT -->
-
-        <main
-            id="pdfViewport"
-            class="pdf-viewport"
-        >
-
-            <div
-                id="pdfPages"
-                class="pdf-pages"
-            ></div>
-
-
-            <!-- PDF LOADING -->
-
-            <div
-                id="pdfLoading"
-                class="pdf-loading"
-            >
-
-                <div class="pdf-loading-spinner"></div>
-
-                <span>
-                    Loading document...
-                </span>
-
-            </div>
-
-
-            <!-- PDF ERROR -->
-
-            <div
-                id="pdfError"
-                class="pdf-error hidden"
-            >
-
-                <strong>
-                    Unable to load the document
-                </strong>
-
-                <span id="pdfErrorMessage">
-                    Please try again.
-                </span>
-
-            </div>
-
-        </main>
-
-    </section>
-
+<section
+    id="pdfViewerScreen"
+    class="pdf-viewer-screen"
+>
 
 
     <!-- =====================================================
-         LOGIN OVERLAY
-
-         Opens with:
-         Ctrl + Shift + L
+         PDF TOOLBAR
     ====================================================== -->
 
-    <div
-        id="loginOverlay"
-        class="login-overlay hidden"
-    >
+    <header class="pdf-toolbar">
 
-        <div
-            id="loginModal"
-            class="login-modal"
-        >
 
-            <!-- CLOSE -->
+        <!-- =================================================
+             LEFT SIDE
+        ================================================== -->
+
+        <div class="pdf-toolbar-left">
 
             <button
-                id="closeLoginButton"
-                class="login-close"
+                id="pdfPreviousButton"
+                class="pdf-toolbar-button"
                 type="button"
-                aria-label="Close login"
+                title="Previous page"
+                aria-label="Previous page"
             >
-                ×
+                ‹
             </button>
 
 
-            <!-- LOGO -->
-
-            <div class="login-logo">
-                LC
-            </div>
-
-
-            <h1>
-                LabChat Login
-            </h1>
-
-
-            <p class="login-subtitle">
-                Sign in to continue
-            </p>
-
-
-            <!-- LOGIN FORM -->
-
-            <form
-                id="loginForm"
+            <span
+                id="pdfPageNumber"
+                class="pdf-page-number"
             >
-
-                <!-- EMAIL / ID -->
-
-                <div class="login-field">
-
-                    <label
-                        for="loginIdentifier"
-                    >
-                        Email / ID
-                    </label>
+                1 / 1
+            </span>
 
 
-                    <input
-                        id="loginIdentifier"
-                        type="text"
-                        placeholder="Enter your email or ID"
-                        autocomplete="username"
-                        required
-                    >
-
-                </div>
-
-
-                <!-- PASSWORD -->
-
-                <div class="login-field">
-
-                    <label
-                        for="loginPassword"
-                    >
-                        Password
-                    </label>
-
-
-                    <input
-                        id="loginPassword"
-                        type="password"
-                        placeholder="Enter your password"
-                        autocomplete="current-password"
-                        required
-                    >
-
-                </div>
-
-
-                <!-- ERROR -->
-
-                <p
-                    id="loginError"
-                    class="login-error"
-                ></p>
-
-
-                <!-- LOGIN -->
-
-                <button
-                    id="loginButton"
-                    class="login-submit"
-                    type="submit"
-                >
-                    Login
-                </button>
-
-            </form>
+            <button
+                id="pdfNextButton"
+                class="pdf-toolbar-button"
+                type="button"
+                title="Next page"
+                aria-label="Next page"
+            >
+                ›
+            </button>
 
         </div>
 
-    </div>
 
+        <!-- =================================================
+             CENTER
+        ================================================== -->
 
+        <div class="pdf-toolbar-center">
 
-    <!-- =====================================================
-         LABCHAT APPLICATION
+            <span
+                id="pdfDocumentTitle"
+                class="pdf-document-title"
+            >
+                Class 11 Python Programming
+            </span>
 
-         Hidden until successful authentication.
-    ====================================================== -->
-
-    <section
-        id="chatScreen"
-        class="chat-screen hidden"
-    >
-
-        <!-- CHAT TOPBAR -->
-
-        <header class="topbar">
-
-            <!-- BRAND -->
-
-            <div class="brand">
-
-                <div class="small-logo">
-                    LC
-                </div>
-
-
-                <div>
-
-                    <h2>
-                        LabChat
-                    </h2>
-
-                    <span id="connectionStatus">
-                        Connecting...
-                    </span>
-
-                </div>
-
-            </div>
-
-
-            <!-- ONLINE USERS -->
-
-            <div class="online-info">
-
-                <span class="online-dot"></span>
-
-                <span id="onlineCount">
-                    0 online
-                </span>
-
-            </div>
-
-
-            <!-- CURRENT USER -->
-
-            <div class="user-info">
-
-                <span id="currentUser">
-                    Guest
-                </span>
-
-
-                <button
-                    id="leaveButton"
-                    class="leave-button"
-                    type="button"
-                >
-                    Sign Out
-                </button>
-
-            </div>
-
-        </header>
+        </div>
 
 
         <!-- =================================================
-             MESSAGES
+             RIGHT SIDE
         ================================================== -->
 
-        <main
-            id="messages"
-            class="messages"
-            aria-live="polite"
-        ></main>
-
-
-        <!-- =================================================
-             MESSAGE FORM
-        ================================================== -->
-
-        <form
-            id="messageForm"
-            class="message-form"
-        >
-
-            <div class="input-area">
-
-                <!-- CODE MODE INDICATOR -->
-
-                <div
-                    id="codeIndicator"
-                    class="code-indicator hidden"
-                >
-                    CODE MODE
-                </div>
-
-
-                <!-- MESSAGE INPUT -->
-
-                <textarea
-                    id="messageInput"
-                    maxlength="10000"
-                    placeholder="Login to send a message..."
-                    autocomplete="off"
-                    rows="1"
-                    disabled
-                ></textarea>
-
-            </div>
-
-
-            <!-- CODE BUTTON -->
+        <div class="pdf-toolbar-right">
 
             <button
+                id="pdfZoomOutButton"
+                class="pdf-toolbar-button"
                 type="button"
-                id="codeButton"
-                class="tool-button"
-                disabled
+                title="Zoom out"
+                aria-label="Zoom out"
             >
-                &lt;/&gt; Code
+                −
             </button>
 
 
-            <!-- SEND BUTTON -->
+            <span
+                id="pdfZoomValue"
+                class="pdf-zoom-value"
+            >
+                100%
+            </span>
+
 
             <button
-                type="submit"
-                id="sendButton"
-                disabled
+                id="pdfZoomInButton"
+                class="pdf-toolbar-button"
+                type="button"
+                title="Zoom in"
+                aria-label="Zoom in"
             >
-                Send
+                +
+            </button>
+
+
+            <button
+                id="pdfFitButton"
+                class="pdf-toolbar-button"
+                type="button"
+                title="Fit page"
+                aria-label="Fit page"
+            >
+                ⛶
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         PDF VIEWPORT
+    ====================================================== -->
+
+    <main
+        id="pdfViewport"
+        class="pdf-viewport"
+    >
+
+        <!--
+            PDF pages are created dynamically by script.js.
+        -->
+
+        <div
+            id="pdfPages"
+            class="pdf-pages"
+        ></div>
+
+
+        <!-- =================================================
+             LOADING STATE
+        ================================================== -->
+
+        <div
+            id="pdfLoading"
+            class="pdf-loading"
+        >
+
+            <div class="pdf-loading-spinner"></div>
+
+            <span>
+                Loading document...
+            </span>
+
+        </div>
+
+
+        <!-- =================================================
+             ERROR STATE
+        ================================================== -->
+
+        <div
+            id="pdfError"
+            class="pdf-error hidden"
+        >
+
+            <strong>
+                Unable to load the document
+            </strong>
+
+
+            <span id="pdfErrorMessage">
+                Please try again.
+            </span>
+
+        </div>
+
+    </main>
+
+</section>
+
+
+
+<!-- =========================================================
+     LOGIN OVERLAY
+
+     IMPORTANT:
+
+     Ctrl + Shift + L opens this popup.
+
+     The SAME login system supports:
+
+     1. Normal LabChat users
+     2. Admin accounts
+
+     script.js checks the authenticated profile role.
+
+     If role = "admin":
+         ../admin/admin.html
+
+     If role = "user":
+         LabChat chat interface
+
+     Therefore we DO NOT create separate login popups here.
+========================================================= -->
+
+<div
+    id="loginOverlay"
+    class="login-overlay hidden"
+>
+
+
+    <div
+        id="loginModal"
+        class="login-modal"
+    >
+
+
+        <!-- =================================================
+             CLOSE
+        ================================================== -->
+
+        <button
+            id="closeLoginButton"
+            class="login-close"
+            type="button"
+            aria-label="Close login"
+        >
+            ×
+        </button>
+
+
+        <!-- =================================================
+             LOGO
+        ================================================== -->
+
+        <div class="login-logo">
+            LC
+        </div>
+
+
+        <h1>
+            LabChat Login
+        </h1>
+
+
+        <p class="login-subtitle">
+            Sign in to continue
+        </p>
+
+
+        <!-- =================================================
+             LOGIN FORM
+        ================================================== -->
+
+        <form
+            id="loginForm"
+        >
+
+
+            <!-- =============================================
+                 EMAIL / ID
+            ============================================== -->
+
+            <div class="login-field">
+
+                <label
+                    for="loginIdentifier"
+                >
+                    Email / ID
+                </label>
+
+
+                <input
+                    id="loginIdentifier"
+                    type="text"
+                    placeholder="Enter your email or ID"
+                    autocomplete="username"
+                    required
+                >
+
+            </div>
+
+
+            <!-- =============================================
+                 PASSWORD
+            ============================================== -->
+
+            <div class="login-field">
+
+                <label
+                    for="loginPassword"
+                >
+                    Password
+                </label>
+
+
+                <input
+                    id="loginPassword"
+                    type="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+
+            </div>
+
+
+            <!-- =============================================
+                 ERROR
+            ============================================== -->
+
+            <p
+                id="loginError"
+                class="login-error"
+            ></p>
+
+
+            <!-- =============================================
+                 LOGIN BUTTON
+            ============================================== -->
+
+            <button
+                id="loginButton"
+                class="login-submit"
+                type="submit"
+            >
+                Login
             </button>
 
         </form>
 
-    </section>
+    </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     LABCHAT CHAT APPLICATION
+
+     Hidden initially.
+
+     It becomes active after a normal user successfully
+     authenticates.
+
+     Admin accounts are redirected to admin/admin.html by
+     script.js.
+========================================================= -->
+
+<section
+    id="chatScreen"
+    class="chat-screen hidden"
+>
+
+
+    <!-- =====================================================
+         CHAT TOPBAR
+    ====================================================== -->
+
+    <header class="topbar">
+
+
+        <!-- =================================================
+             BRAND
+        ================================================== -->
+
+        <div class="brand">
+
+            <div class="small-logo">
+                LC
+            </div>
+
+
+            <div>
+
+                <h2>
+                    LabChat
+                </h2>
+
+
+                <span id="connectionStatus">
+                    Connecting...
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             ONLINE USERS
+        ================================================== -->
+
+        <div class="online-info">
+
+            <span class="online-dot"></span>
+
+
+            <span id="onlineCount">
+                0 online
+            </span>
+
+        </div>
+
+
+        <!-- =================================================
+             CURRENT USER
+        ================================================== -->
+
+        <div class="user-info">
+
+            <span id="currentUser">
+                Guest
+            </span>
+
+
+            <button
+                id="leaveButton"
+                class="leave-button"
+                type="button"
+            >
+                Sign Out
+            </button>
+
+        </div>
+
+    </header>
 
 
 
     <!-- =====================================================
-         SUPABASE
-         
-         Loaded before script.js because script.js uses:
+         MESSAGES
+    ====================================================== -->
+
+    <main
+        id="messages"
+        class="messages"
+        aria-live="polite"
+    ></main>
+
+
+
+    <!-- =====================================================
+         MESSAGE FORM
+    ====================================================== -->
+
+    <form
+        id="messageForm"
+        class="message-form"
+    >
+
+
+        <div class="input-area">
+
+
+            <!-- =============================================
+                 CODE MODE INDICATOR
+            ============================================== -->
+
+            <div
+                id="codeIndicator"
+                class="code-indicator hidden"
+            >
+                CODE MODE
+            </div>
+
+
+            <!-- =============================================
+                 MESSAGE INPUT
+            ============================================== -->
+
+            <textarea
+                id="messageInput"
+                maxlength="10000"
+                placeholder="Login to send a message..."
+                autocomplete="off"
+                rows="1"
+                disabled
+            ></textarea>
+
+        </div>
+
+
+        <!-- =================================================
+             CODE BUTTON
+        ================================================== -->
+
+        <button
+            type="button"
+            id="codeButton"
+            class="tool-button"
+            disabled
+        >
+            &lt;/&gt; Code
+        </button>
+
+
+        <!-- =================================================
+             SEND BUTTON
+        ================================================== -->
+
+        <button
+            type="submit"
+            id="sendButton"
+            disabled
+        >
+            Send
+        </button>
+
+    </form>
+
+</section>
+
+
+
+<!-- =========================================================
+     SUPABASE
+
+     Loaded before script.js because script.js uses:
+
          window.supabase.createClient(...)
-    ====================================================== -->
+========================================================= -->
 
-    <script
-        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-    ></script>
+<script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+></script>
 
 
 
-    <!-- =====================================================
-         LABCHAT JAVASCRIPT
+<!-- =========================================================
+     LABCHAT APPLICATION SCRIPT
 
-         IMPORTANT:
-         script.js contains ES module imports, so it MUST
-         be loaded using type="module".
-    ====================================================== -->
+     IMPORTANT:
 
-    <script
-        type="module"
-        src="script.js"
-    ></script>
+     script.js is a module because our PDF.js integration
+     will use the PDF.js module API.
+
+     It will also continue handling:
+
+     - Ctrl + Shift + L
+     - Login
+     - Admin detection
+     - User detection
+     - Chat
+     - Realtime
+     - Presence
+     - PDF loading
+     - PDF controls
+========================================================= -->
+
+<script
+    type="module"
+    src="script.js"
+></script>
 
 
 </body>
 
 </html>
+```
