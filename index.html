@@ -25,7 +25,7 @@
 
     <!-- =====================================================
          PDF VIEWER
-         This is the initial/full-screen application.
+         Public document viewer.
     ====================================================== -->
 
     <section
@@ -33,13 +33,9 @@
         class="pdf-viewer-screen"
     >
 
-
-        <!-- ================================================
-             PDF VIEWER TOOLBAR
-        ================================================= -->
+        <!-- PDF TOOLBAR -->
 
         <header class="pdf-toolbar">
-
 
             <!-- LEFT -->
 
@@ -77,7 +73,6 @@
             </div>
 
 
-
             <!-- CENTER -->
 
             <div class="pdf-toolbar-center">
@@ -92,11 +87,9 @@
             </div>
 
 
-
             <!-- RIGHT -->
 
             <div class="pdf-toolbar-right">
-
 
                 <button
                     id="pdfZoomOutButton"
@@ -140,14 +133,10 @@
 
             </div>
 
-
         </header>
 
 
-
-        <!-- ================================================
-             PDF VIEWPORT
-        ================================================= -->
+        <!-- PDF VIEWPORT -->
 
         <main
             id="pdfViewport"
@@ -157,13 +146,7 @@
             <div
                 id="pdfPages"
                 class="pdf-pages"
-            >
-
-                <!--
-                    PDF.js will create the pages here.
-                -->
-
-            </div>
+            ></div>
 
 
             <!-- PDF LOADING -->
@@ -201,7 +184,6 @@
 
         </main>
 
-
     </section>
 
 
@@ -209,10 +191,8 @@
     <!-- =====================================================
          LOGIN OVERLAY
 
-         Opens ONLY with:
+         Opens with:
          Ctrl + Shift + L
-
-         No shortcut text is displayed here.
     ====================================================== -->
 
     <div
@@ -220,12 +200,10 @@
         class="login-overlay hidden"
     >
 
-
         <div
             id="loginModal"
             class="login-modal"
         >
-
 
             <!-- CLOSE -->
 
@@ -239,13 +217,11 @@
             </button>
 
 
-
             <!-- LOGO -->
 
             <div class="login-logo">
                 LC
             </div>
-
 
 
             <h1>
@@ -258,13 +234,11 @@
             </p>
 
 
-
             <!-- LOGIN FORM -->
 
             <form
                 id="loginForm"
             >
-
 
                 <!-- EMAIL / ID -->
 
@@ -286,7 +260,6 @@
                     >
 
                 </div>
-
 
 
                 <!-- PASSWORD -->
@@ -311,14 +284,12 @@
                 </div>
 
 
-
                 <!-- ERROR -->
 
                 <p
                     id="loginError"
                     class="login-error"
                 ></p>
-
 
 
                 <!-- LOGIN -->
@@ -331,12 +302,9 @@
                     Login
                 </button>
 
-
             </form>
 
-
         </div>
-
 
     </div>
 
@@ -345,10 +313,7 @@
     <!-- =====================================================
          LABCHAT APPLICATION
 
-         Hidden initially.
-
-         It will become visible after successful
-         Supabase authentication.
+         Hidden until successful authentication.
     ====================================================== -->
 
     <section
@@ -356,19 +321,18 @@
         class="chat-screen hidden"
     >
 
-
-        <!-- =================================================
-             CHAT TOPBAR
-        ================================================== -->
+        <!-- CHAT TOPBAR -->
 
         <header class="topbar">
 
+            <!-- BRAND -->
 
             <div class="brand">
 
                 <div class="small-logo">
                     LC
                 </div>
+
 
                 <div>
 
@@ -385,8 +349,7 @@
             </div>
 
 
-
-            <!-- ONLINE -->
+            <!-- ONLINE USERS -->
 
             <div class="online-info">
 
@@ -399,8 +362,7 @@
             </div>
 
 
-
-            <!-- USER -->
+            <!-- CURRENT USER -->
 
             <div class="user-info">
 
@@ -419,9 +381,7 @@
 
             </div>
 
-
         </header>
-
 
 
         <!-- =================================================
@@ -435,7 +395,6 @@
         ></main>
 
 
-
         <!-- =================================================
              MESSAGE FORM
         ================================================== -->
@@ -445,9 +404,9 @@
             class="message-form"
         >
 
-
             <div class="input-area">
 
+                <!-- CODE MODE INDICATOR -->
 
                 <div
                     id="codeIndicator"
@@ -456,6 +415,8 @@
                     CODE MODE
                 </div>
 
+
+                <!-- MESSAGE INPUT -->
 
                 <textarea
                     id="messageInput"
@@ -466,12 +427,10 @@
                     disabled
                 ></textarea>
 
-
             </div>
 
 
-
-            <!-- CODE -->
+            <!-- CODE BUTTON -->
 
             <button
                 type="button"
@@ -483,8 +442,7 @@
             </button>
 
 
-
-            <!-- SEND -->
+            <!-- SEND BUTTON -->
 
             <button
                 type="submit"
@@ -494,36 +452,17 @@
                 Send
             </button>
 
-
         </form>
-
 
     </section>
 
 
 
     <!-- =====================================================
-         PDF.JS
-    ====================================================== -->
-
-    <script type="module">
-    import * as pdfjsLib from
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
-
-    window.pdfjsLib = pdfjsLib;
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
-
-    window.dispatchEvent(
-        new Event("pdfjs-ready")
-    );
-</script>
-
-
-
-    <!-- =====================================================
          SUPABASE
+         
+         Loaded before script.js because script.js uses:
+         window.supabase.createClient(...)
     ====================================================== -->
 
     <script
@@ -534,9 +473,14 @@
 
     <!-- =====================================================
          LABCHAT JAVASCRIPT
+
+         IMPORTANT:
+         script.js contains ES module imports, so it MUST
+         be loaded using type="module".
     ====================================================== -->
 
     <script
+        type="module"
         src="script.js"
     ></script>
 
