@@ -5,28 +5,6 @@
 
 
 /* =========================================================
-   PDF.JS IMPORT
-========================================================= */
-
-import {
-    getDocument,
-    GlobalWorkerOptions
-} from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
-
-import {
-    PDFViewer
-} from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf_viewer.mjs";
-
-
-/* =========================================================
-   PDF.JS WORKER
-========================================================= */
-
-GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
-
-
-/* =========================================================
    SUPABASE CONFIG
 ========================================================= */
 
@@ -67,199 +45,92 @@ let userSessionId =
 
 
 /* =========================================================
-   PDF STATE
-========================================================= */
-
-let pdfDocument = null;
-
-let currentPdfPage = 1;
-
-let pdfScale = 1;
-
-let pdfRendering = false;
-
-let pdfPendingPage = null;
-
-let activePdfUrl = null;
-
-
-/* =========================================================
    DOM ELEMENTS
 ========================================================= */
-
-
-/* ---------- PDF ---------- */
-
-const pdfViewerScreen =
-    document.getElementById(
-        "pdfViewerScreen"
-    );
-
-const pdfViewport =
-    document.getElementById(
-        "pdfViewport"
-    );
-
-const pdfPages =
-    document.getElementById(
-        "pdfPages"
-    );
-
-const pdfLoading =
-    document.getElementById(
-        "pdfLoading"
-    );
-
-const pdfError =
-    document.getElementById(
-        "pdfError"
-    );
-
-const pdfErrorMessage =
-    document.getElementById(
-        "pdfErrorMessage"
-    );
-
-const pdfPreviousButton =
-    document.getElementById(
-        "pdfPreviousButton"
-    );
-
-const pdfNextButton =
-    document.getElementById(
-        "pdfNextButton"
-    );
-
-const pdfPageNumber =
-    document.getElementById(
-        "pdfPageNumber"
-    );
-
-const pdfDocumentTitle =
-    document.getElementById(
-        "pdfDocumentTitle"
-    );
-
-const pdfZoomOutButton =
-    document.getElementById(
-        "pdfZoomOutButton"
-    );
-
-const pdfZoomValue =
-    document.getElementById(
-        "pdfZoomValue"
-    );
-
-const pdfZoomInButton =
-    document.getElementById(
-        "pdfZoomInButton"
-    );
-
-const pdfFitButton =
-    document.getElementById(
-        "pdfFitButton"
-    );
 
 
 /* ---------- Login ---------- */
 
 const loginOverlay =
-    document.getElementById(
-        "loginOverlay"
-    );
+    document.getElementById("loginOverlay");
 
 const loginModal =
-    document.getElementById(
-        "loginModal"
-    );
+    document.getElementById("loginModal");
 
 const loginForm =
-    document.getElementById(
-        "loginForm"
-    );
+    document.getElementById("loginForm");
 
 const loginIdentifier =
-    document.getElementById(
-        "loginIdentifier"
-    );
+    document.getElementById("loginIdentifier");
 
 const loginPassword =
-    document.getElementById(
-        "loginPassword"
-    );
+    document.getElementById("loginPassword");
 
 const loginButton =
-    document.getElementById(
-        "loginButton"
-    );
+    document.getElementById("loginButton");
 
 const loginError =
-    document.getElementById(
-        "loginError"
-    );
+    document.getElementById("loginError");
 
 const closeLoginButton =
-    document.getElementById(
-        "closeLoginButton"
-    );
+    document.getElementById("closeLoginButton");
+
+const openLoginButton =
+    document.getElementById("openLoginButton");
+
+const loginNotice =
+    document.getElementById("loginNotice");
 
 
 /* ---------- Chat ---------- */
 
 const chatScreen =
-    document.getElementById(
-        "chatScreen"
-    );
+    document.getElementById("chatScreen");
 
 const currentUserElement =
-    document.getElementById(
-        "currentUser"
-    );
+    document.getElementById("currentUser");
 
 const connectionStatus =
-    document.getElementById(
-        "connectionStatus"
-    );
+    document.getElementById("connectionStatus");
 
 const onlineCount =
-    document.getElementById(
-        "onlineCount"
-    );
+    document.getElementById("onlineCount");
 
 const messagesContainer =
-    document.getElementById(
-        "messages"
-    );
+    document.getElementById("messages");
 
 const messageForm =
-    document.getElementById(
-        "messageForm"
-    );
+    document.getElementById("messageForm");
 
 const messageInput =
-    document.getElementById(
-        "messageInput"
-    );
+    document.getElementById("messageInput");
 
 const sendButton =
-    document.getElementById(
-        "sendButton"
-    );
+    document.getElementById("sendButton");
 
 const codeButton =
-    document.getElementById(
-        "codeButton"
-    );
+    document.getElementById("codeButton");
 
 const codeIndicator =
-    document.getElementById(
-        "codeIndicator"
-    );
+    document.getElementById("codeIndicator");
 
 const leaveButton =
-    document.getElementById(
-        "leaveButton"
-    );
+    document.getElementById("leaveButton");
+
+
+/* ---------- PDF ---------- */
+
+const pdfSection =
+    document.getElementById("pdfSection");
+
+const pdfTitle =
+    document.getElementById("pdfTitle");
+
+const pdfStatus =
+    document.getElementById("pdfStatus");
+
+const pdfButton =
+    document.getElementById("pdfButton");
 
 
 /* =========================================================
@@ -284,26 +155,33 @@ async function initializeLabChat() {
     );
 
 
+    /*
+     * Set up UI controls first.
+     */
+
     setupLoginControls();
 
     setupMessageControls();
 
     setupKeyboardShortcuts();
 
-    setupPdfControls();
-
     disableChatControls();
 
 
     /*
-     * PDF is public.
+     * IMPORTANT
+     *
+     * PDF is PUBLIC.
+     *
+     * Therefore load it BEFORE checking
+     * whether the user is logged in.
      */
 
     await loadActivePDF();
 
 
     /*
-     * Restore authentication.
+     * Restore Supabase authentication.
      */
 
     await restoreSession();
@@ -321,6 +199,11 @@ async function initializeLabChat() {
 
 function setupLoginControls() {
 
+
+    /*
+     * Login form
+     */
+
     if (loginForm) {
 
         loginForm.addEventListener(
@@ -331,6 +214,10 @@ function setupLoginControls() {
     }
 
 
+    /*
+     * Close button
+     */
+
     if (closeLoginButton) {
 
         closeLoginButton.addEventListener(
@@ -340,6 +227,24 @@ function setupLoginControls() {
 
     }
 
+
+    /*
+     * Open login button
+     */
+
+    if (openLoginButton) {
+
+        openLoginButton.addEventListener(
+            "click",
+            openLogin
+        );
+
+    }
+
+
+    /*
+     * Clicking outside modal closes login.
+     */
 
     if (loginOverlay) {
 
@@ -360,6 +265,7 @@ function setupLoginControls() {
         );
 
     }
+
 }
 
 
@@ -368,6 +274,11 @@ function setupLoginControls() {
 ========================================================= */
 
 function setupMessageControls() {
+
+
+    /*
+     * Message form
+     */
 
     if (messageForm) {
 
@@ -378,6 +289,10 @@ function setupMessageControls() {
 
     }
 
+
+    /*
+     * Message keyboard handling
+     */
 
     if (messageInput) {
 
@@ -395,6 +310,10 @@ function setupMessageControls() {
     }
 
 
+    /*
+     * Code mode
+     */
+
     if (codeButton) {
 
         codeButton.addEventListener(
@@ -405,120 +324,15 @@ function setupMessageControls() {
     }
 
 
+    /*
+     * Sign out
+     */
+
     if (leaveButton) {
 
         leaveButton.addEventListener(
             "click",
             leaveChat
-        );
-
-    }
-}
-
-
-/* =========================================================
-   PDF CONTROLS
-========================================================= */
-
-function setupPdfControls() {
-
-    if (pdfPreviousButton) {
-
-        pdfPreviousButton.addEventListener(
-            "click",
-            () => {
-
-                if (currentPdfPage > 1) {
-
-                    showPdfPage(
-                        currentPdfPage - 1
-                    );
-
-                }
-
-            }
-        );
-
-    }
-
-
-    if (pdfNextButton) {
-
-        pdfNextButton.addEventListener(
-            "click",
-            () => {
-
-                if (
-                    pdfDocument &&
-                    currentPdfPage <
-                        pdfDocument.numPages
-                ) {
-
-                    showPdfPage(
-                        currentPdfPage + 1
-                    );
-
-                }
-
-            }
-        );
-
-    }
-
-
-    if (pdfZoomOutButton) {
-
-        pdfZoomOutButton.addEventListener(
-            "click",
-            () => {
-
-                pdfScale =
-                    Math.max(
-                        0.5,
-                        pdfScale - 0.1
-                    );
-
-                updatePdfZoomDisplay();
-
-                renderPdfPage(
-                    currentPdfPage
-                );
-
-            }
-        );
-
-    }
-
-
-    if (pdfZoomInButton) {
-
-        pdfZoomInButton.addEventListener(
-            "click",
-            () => {
-
-                pdfScale =
-                    Math.min(
-                        3,
-                        pdfScale + 0.1
-                    );
-
-                updatePdfZoomDisplay();
-
-                renderPdfPage(
-                    currentPdfPage
-                );
-
-            }
-        );
-
-    }
-
-
-    if (pdfFitButton) {
-
-        pdfFitButton.addEventListener(
-            "click",
-            fitPdfToViewport
         );
 
     }
@@ -536,8 +350,11 @@ function setupKeyboardShortcuts() {
         "keydown",
         (event) => {
 
+
             /*
              * Ctrl + Shift + L
+             *
+             * Open login
              */
 
             if (
@@ -551,12 +368,13 @@ function setupKeyboardShortcuts() {
                 openLogin();
 
                 return;
-
             }
 
 
             /*
              * Escape
+             *
+             * Close login
              */
 
             if (
@@ -571,76 +389,7 @@ function setupKeyboardShortcuts() {
 
             }
 
-
-            /*
-             * PDF previous page
-             */
-
-            if (
-                event.key === "ArrowLeft" &&
-                !isTypingIntoInput()
-            ) {
-
-                if (currentPdfPage > 1) {
-
-                    showPdfPage(
-                        currentPdfPage - 1
-                    );
-
-                }
-
-            }
-
-
-            /*
-             * PDF next page
-             */
-
-            if (
-                event.key === "ArrowRight" &&
-                !isTypingIntoInput()
-            ) {
-
-                if (
-                    pdfDocument &&
-                    currentPdfPage <
-                        pdfDocument.numPages
-                ) {
-
-                    showPdfPage(
-                        currentPdfPage + 1
-                    );
-
-                }
-
-            }
-
         }
-    );
-
-}
-
-
-/* =========================================================
-   INPUT DETECTION
-========================================================= */
-
-function isTypingIntoInput() {
-
-    const active =
-        document.activeElement;
-
-    if (!active) {
-
-        return false;
-
-    }
-
-
-    return (
-        active.tagName === "INPUT" ||
-        active.tagName === "TEXTAREA" ||
-        active.tagName === "SELECT"
     );
 
 }
@@ -653,9 +402,7 @@ function isTypingIntoInput() {
 function openLogin() {
 
     if (!loginOverlay) {
-
         return;
-
     }
 
 
@@ -690,9 +437,7 @@ function openLogin() {
 function closeLogin() {
 
     if (!loginOverlay) {
-
         return;
-
     }
 
 
@@ -722,12 +467,12 @@ async function handleLogin(event) {
         );
 
         return;
-
     }
 
 
     const identifier =
         loginIdentifier.value.trim();
+
 
     const password =
         loginPassword.value;
@@ -743,14 +488,20 @@ async function handleLogin(event) {
         );
 
         return;
-
     }
 
 
     clearLoginError();
 
-    setLoginLoading(true);
+    setLoginLoading(
+        true
+    );
 
+
+    /*
+     * Current architecture uses
+     * Supabase Auth email/password.
+     */
 
     if (
         !identifier.includes("@")
@@ -760,10 +511,11 @@ async function handleLogin(event) {
             "Please use your Supabase Auth email."
         );
 
-        setLoginLoading(false);
+        setLoginLoading(
+            false
+        );
 
         return;
-
     }
 
 
@@ -798,10 +550,11 @@ async function handleLogin(event) {
                 )
             );
 
-            setLoginLoading(false);
+            setLoginLoading(
+                false
+            );
 
             return;
-
         }
 
 
@@ -814,10 +567,11 @@ async function handleLogin(event) {
                 "Login failed. Please try again."
             );
 
-            setLoginLoading(false);
+            setLoginLoading(
+                false
+            );
 
             return;
-
         }
 
 
@@ -829,20 +583,22 @@ async function handleLogin(event) {
 
         if (!success) {
 
-            await supabaseClient.auth
-                .signOut();
+            await supabaseClient.auth.signOut();
 
-            setLoginLoading(false);
+            setLoginLoading(
+                false
+            );
 
             return;
-
         }
 
 
         loginPassword.value = "";
 
 
-        setLoginLoading(false);
+        setLoginLoading(
+            false
+        );
 
 
     } catch (error) {
@@ -856,7 +612,9 @@ async function handleLogin(event) {
             "An unexpected error occurred."
         );
 
-        setLoginLoading(false);
+        setLoginLoading(
+            false
+        );
 
     }
 
@@ -891,9 +649,16 @@ async function restoreSession() {
             );
 
             return;
-
         }
 
+
+        /*
+         * No existing session.
+         *
+         * This is completely normal.
+         *
+         * The public PDF should still be visible.
+         */
 
         if (
             !data ||
@@ -907,9 +672,12 @@ async function restoreSession() {
             showGuestState();
 
             return;
-
         }
 
+
+        /*
+         * Existing session found.
+         */
 
         await loadUserProfile(
             data.session.user
@@ -956,15 +724,19 @@ supabaseClient.auth.onAuthStateChange(
             await resetLabChat();
 
             return;
-
         }
 
 
         if (
             event ===
-                "SIGNED_IN" &&
+            "SIGNED_IN" &&
             session
         ) {
+
+            /*
+             * Don't load the profile twice
+             * if it is already loaded.
+             */
 
             if (
                 !currentProfile
@@ -1025,7 +797,6 @@ async function loadUserProfile(user) {
             );
 
             return false;
-
         }
 
 
@@ -1036,9 +807,12 @@ async function loadUserProfile(user) {
             );
 
             return false;
-
         }
 
+
+        /*
+         * Check account status.
+         */
 
         if (
             data.is_active !== true
@@ -1049,7 +823,6 @@ async function loadUserProfile(user) {
             );
 
             return false;
-
         }
 
 
@@ -1072,7 +845,6 @@ async function loadUserProfile(user) {
 
 
             return true;
-
         }
 
 
@@ -1090,9 +862,12 @@ async function loadUserProfile(user) {
             );
 
             return false;
-
         }
 
+
+        /*
+         * Save authenticated user.
+         */
 
         currentUser =
             user;
@@ -1100,6 +875,10 @@ async function loadUserProfile(user) {
         currentProfile =
             data;
 
+
+        /*
+         * Update UI.
+         */
 
         if (currentUserElement) {
 
@@ -1109,8 +888,21 @@ async function loadUserProfile(user) {
         }
 
 
+        if (loginNotice) {
+
+            loginNotice.classList.add(
+                "hidden"
+            );
+
+        }
+
+
         closeLogin();
 
+
+        /*
+         * Enable chat.
+         */
 
         enableChatControls();
 
@@ -1120,14 +912,22 @@ async function loadUserProfile(user) {
         );
 
 
+        /*
+         * Load chat data.
+         */
+
         await loadMessages();
 
+        await loadActivePDF();
 
         subscribeToMessages();
 
-
         startPresence();
 
+
+        /*
+         * Focus message box.
+         */
 
         if (messageInput) {
 
@@ -1184,11 +984,24 @@ function showGuestState() {
     }
 
 
+    if (loginNotice) {
+
+        loginNotice.classList.remove(
+            "hidden"
+        );
+
+    }
+
+
     disableChatControls();
 
 
     /*
-     * PDF stays visible.
+     * IMPORTANT:
+     *
+     * We DO NOT hide the PDF here.
+     *
+     * PDF is public.
      */
 
     loadActivePDF();
@@ -1203,9 +1016,7 @@ function showGuestState() {
 function showLoginError(message) {
 
     if (!loginError) {
-
         return;
-
     }
 
 
@@ -1222,9 +1033,7 @@ function showLoginError(message) {
 function clearLoginError() {
 
     if (!loginError) {
-
         return;
-
     }
 
 
@@ -1238,12 +1047,12 @@ function clearLoginError() {
    LOGIN BUTTON STATE
 ========================================================= */
 
-function setLoginLoading(loading) {
+function setLoginLoading(
+    loading
+) {
 
     if (!loginButton) {
-
         return;
-
     }
 
 
@@ -1263,7 +1072,9 @@ function setLoginLoading(loading) {
    LOGIN ERROR MESSAGE
 ========================================================= */
 
-function getLoginErrorMessage(error) {
+function getLoginErrorMessage(
+    error
+) {
 
     if (!error) {
 
@@ -1274,6 +1085,7 @@ function getLoginErrorMessage(error) {
 
     const message =
         error.message || "";
+
 
     const lower =
         message.toLowerCase();
@@ -1310,10 +1122,11 @@ function getLoginErrorMessage(error) {
 
 
 /* =========================================================
-   CHAT ENABLE
+   CHAT ENABLE / DISABLE
 ========================================================= */
 
 function enableChatControls() {
+
 
     if (messageInput) {
 
@@ -1345,10 +1158,11 @@ function enableChatControls() {
 
 
 /* =========================================================
-   CHAT DISABLE
+   DISABLE CHAT
 ========================================================= */
 
 function disableChatControls() {
+
 
     if (messageInput) {
 
@@ -1386,9 +1200,7 @@ function disableChatControls() {
 async function loadMessages() {
 
     if (!messagesContainer) {
-
         return;
-
     }
 
 
@@ -1430,7 +1242,6 @@ async function loadMessages() {
             );
 
             return;
-
         }
 
 
@@ -1484,6 +1295,7 @@ async function loadMessages() {
 
 function subscribeToMessages() {
 
+
     if (realtimeChannel) {
 
         supabaseClient.removeChannel(
@@ -1501,6 +1313,8 @@ function subscribeToMessages() {
             .channel(
                 "labchat-messages"
             )
+
+
             .on(
                 "postgres_changes",
                 {
@@ -1513,6 +1327,8 @@ function subscribeToMessages() {
                     table:
                         "messages"
                 },
+
+
                 (payload) => {
 
                     console.log(
@@ -1530,6 +1346,8 @@ function subscribeToMessages() {
 
                 }
             )
+
+
             .subscribe(
                 (status) => {
 
@@ -1550,6 +1368,7 @@ function subscribeToMessages() {
 
                     }
 
+
                     else if (
                         status ===
                         "CHANNEL_ERROR"
@@ -1560,6 +1379,7 @@ function subscribeToMessages() {
                         );
 
                     }
+
 
                     else if (
                         status ===
@@ -1579,13 +1399,32 @@ function subscribeToMessages() {
 
 
 /* =========================================================
-   PUBLIC PDF
+   LOAD PUBLIC PDF
 ========================================================= */
 
 async function loadActivePDF() {
 
     console.log(
         "Loading public PDF..."
+    );
+
+
+    if (!pdfSection) {
+
+        console.error(
+            "pdfSection not found."
+        );
+
+        return;
+    }
+
+
+    /*
+     * Hide temporarily while loading.
+     */
+
+    pdfSection.classList.add(
+        "hidden"
     );
 
 
@@ -1614,6 +1453,10 @@ async function loadActivePDF() {
                 .maybeSingle();
 
 
+        /*
+         * Database / RLS error.
+         */
+
         if (error) {
 
             console.error(
@@ -1621,76 +1464,122 @@ async function loadActivePDF() {
                 error
             );
 
-            showPdfError(
-                "Unable to load the document."
-            );
 
-            return;
+            if (pdfStatus) {
 
-        }
-
-
-        if (!data) {
-
-            showPdfError(
-                "No active document is available."
-            );
-
-            return;
-
-        }
-
-
-        if (!data.github_url) {
-
-            showPdfError(
-                "The active document has no PDF URL."
-            );
-
-            return;
-
-        }
-
-
-        if (pdfDocument) {
-
-            try {
-
-                pdfDocument.destroy();
-
-            } catch (error) {
-
-                console.error(
-                    "Previous PDF cleanup error:",
-                    error
-                );
+                pdfStatus.textContent =
+                    "Unable to load document.";
 
             }
 
-            pdfDocument =
-                null;
 
+            return;
         }
 
 
-        activePdfUrl =
-            data.github_url;
+        /*
+         * No active PDF.
+         */
+
+        if (!data) {
+
+            console.log(
+                "No active PDF found."
+            );
 
 
-        if (pdfDocumentTitle) {
+            return;
+        }
 
-            pdfDocumentTitle.textContent =
+
+        /*
+         * Missing URL.
+         */
+
+        if (!data.github_url) {
+
+            console.error(
+                "PDF exists but github_url is empty."
+            );
+
+
+            if (pdfTitle) {
+
+                pdfTitle.textContent =
+                    data.file_name ||
+                    "Lab PDF";
+
+            }
+
+
+            if (pdfStatus) {
+
+                pdfStatus.textContent =
+                    "PDF link is missing.";
+
+            }
+
+
+            pdfSection.classList.remove(
+                "hidden"
+            );
+
+
+            return;
+        }
+
+
+        /*
+         * Set PDF information.
+         */
+
+        if (pdfTitle) {
+
+            pdfTitle.textContent =
                 data.file_name ||
-                "Lab Document";
+                "Lab PDF";
 
         }
 
 
-        hidePdfError();
+        if (pdfStatus) {
+
+            pdfStatus.textContent =
+                "Active lab document";
+
+        }
 
 
-        await openPdfDocument(
-            activePdfUrl
+        if (pdfButton) {
+
+            pdfButton.href =
+                data.github_url;
+
+            pdfButton.target =
+                "_blank";
+
+            pdfButton.rel =
+                "noopener noreferrer";
+
+        }
+
+
+        /*
+         * SHOW PDF
+         *
+         * This happens regardless of
+         * whether the user is logged in.
+         */
+
+        pdfSection.classList.remove(
+            "hidden"
+        );
+
+
+        console.log(
+            "Public PDF loaded:",
+            data.file_name,
+            data.github_url
         );
 
 
@@ -1699,520 +1588,6 @@ async function loadActivePDF() {
         console.error(
             "Unexpected PDF error:",
             error
-        );
-
-        showPdfError(
-            "Unable to load the document."
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   OPEN PDF DOCUMENT
-========================================================= */
-
-async function openPdfDocument(url) {
-
-    if (!url) {
-
-        return;
-
-    }
-
-
-    if (pdfLoading) {
-
-        pdfLoading.classList.remove(
-            "hidden"
-        );
-
-    }
-
-
-    try {
-
-        const loadingTask =
-            getDocument({
-                url: url
-            });
-
-
-        pdfDocument =
-            await loadingTask.promise;
-
-
-        currentPdfPage =
-            1;
-
-
-        pdfScale =
-            1;
-
-
-        updatePdfPageControls();
-
-        updatePdfZoomDisplay();
-
-
-        if (pdfLoading) {
-
-            pdfLoading.classList.add(
-                "hidden"
-            );
-
-        }
-
-
-        await fitPdfToViewport();
-
-
-        console.log(
-            "PDF loaded:",
-            pdfDocument.numPages,
-            "pages"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "PDF.js loading error:",
-            error
-        );
-
-
-        if (pdfLoading) {
-
-            pdfLoading.classList.add(
-                "hidden"
-            );
-
-        }
-
-
-        showPdfError(
-            "The document could not be opened."
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   SHOW PDF PAGE
-========================================================= */
-
-async function showPdfPage(pageNumber) {
-
-    if (!pdfDocument) {
-
-        return;
-
-    }
-
-
-    if (
-        pageNumber < 1 ||
-        pageNumber >
-            pdfDocument.numPages
-    ) {
-
-        return;
-
-    }
-
-
-    currentPdfPage =
-        pageNumber;
-
-
-    updatePdfPageControls();
-
-
-    await renderPdfPage(
-        currentPdfPage
-    );
-
-}
-
-
-/* =========================================================
-   RENDER PDF PAGE
-========================================================= */
-
-async function renderPdfPage(pageNumber) {
-
-    if (!pdfDocument) {
-
-        return;
-
-    }
-
-
-    if (pdfRendering) {
-
-        pdfPendingPage =
-            pageNumber;
-
-        return;
-
-    }
-
-
-    pdfRendering =
-        true;
-
-
-    try {
-
-        const page =
-            await pdfDocument.getPage(
-                pageNumber
-            );
-
-
-        const viewport =
-            page.getViewport({
-                scale:
-                    pdfScale
-            });
-
-
-        if (pdfPages) {
-
-            pdfPages.innerHTML =
-                "";
-
-
-            const pageContainer =
-                document.createElement(
-                    "div"
-                );
-
-
-            pageContainer.className =
-                "pdf-page";
-
-
-            pageContainer.style.width =
-                `${viewport.width}px`;
-
-
-            pageContainer.style.height =
-                `${viewport.height}px`;
-
-
-            const canvas =
-                document.createElement(
-                    "canvas"
-                );
-
-
-            const context =
-                canvas.getContext(
-                    "2d"
-                );
-
-
-            const deviceScale =
-                window.devicePixelRatio ||
-                1;
-
-
-            canvas.width =
-                viewport.width *
-                deviceScale;
-
-
-            canvas.height =
-                viewport.height *
-                deviceScale;
-
-
-            canvas.style.width =
-                `${viewport.width}px`;
-
-
-            canvas.style.height =
-                `${viewport.height}px`;
-
-
-            context.scale(
-                deviceScale,
-                deviceScale
-            );
-
-
-            pageContainer.appendChild(
-                canvas
-            );
-
-
-            pdfPages.appendChild(
-                pageContainer
-            );
-
-
-            await page.render(
-                {
-                    canvasContext:
-                        context,
-
-                    viewport:
-                        viewport
-                }
-            ).promise;
-
-
-            if (pdfViewport) {
-
-                pdfViewport.scrollTop =
-                    0;
-
-                pdfViewport.scrollLeft =
-                    0;
-
-            }
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            "PDF render error:",
-            error
-        );
-
-        showPdfError(
-            "Unable to render this page."
-        );
-
-    } finally {
-
-        pdfRendering =
-            false;
-
-
-        if (
-            pdfPendingPage !== null
-        ) {
-
-            const pending =
-                pdfPendingPage;
-
-            pdfPendingPage =
-                null;
-
-            renderPdfPage(
-                pending
-            );
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   FIT PDF
-========================================================= */
-
-async function fitPdfToViewport() {
-
-    if (
-        !pdfDocument ||
-        !pdfViewport
-    ) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const page =
-            await pdfDocument.getPage(
-                currentPdfPage
-            );
-
-
-        const unscaled =
-            page.getViewport({
-                scale:
-                    1
-            });
-
-
-        const availableWidth =
-            pdfViewport.clientWidth -
-            40;
-
-
-        const availableHeight =
-            pdfViewport.clientHeight -
-            40;
-
-
-        const widthScale =
-            availableWidth /
-            unscaled.width;
-
-
-        const heightScale =
-            availableHeight /
-            unscaled.height;
-
-
-        pdfScale =
-            Math.min(
-                widthScale,
-                heightScale
-            );
-
-
-        pdfScale =
-            Math.max(
-                0.5,
-                Math.min(
-                    pdfScale,
-                    3
-                )
-            );
-
-
-        updatePdfZoomDisplay();
-
-
-        await renderPdfPage(
-            currentPdfPage
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "PDF fit error:",
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   PDF PAGE CONTROLS
-========================================================= */
-
-function updatePdfPageControls() {
-
-    if (pdfPageNumber) {
-
-        const total =
-            pdfDocument
-                ? pdfDocument.numPages
-                : 1;
-
-
-        pdfPageNumber.textContent =
-            `${currentPdfPage} / ${total}`;
-
-    }
-
-
-    if (pdfPreviousButton) {
-
-        pdfPreviousButton.disabled =
-            !pdfDocument ||
-            currentPdfPage <= 1;
-
-    }
-
-
-    if (pdfNextButton) {
-
-        pdfNextButton.disabled =
-            !pdfDocument ||
-            currentPdfPage >=
-                pdfDocument.numPages;
-
-    }
-
-}
-
-
-/* =========================================================
-   PDF ZOOM DISPLAY
-========================================================= */
-
-function updatePdfZoomDisplay() {
-
-    if (!pdfZoomValue) {
-
-        return;
-
-    }
-
-
-    pdfZoomValue.textContent =
-        `${Math.round(
-            pdfScale * 100
-        )}%`;
-
-}
-
-
-/* =========================================================
-   PDF ERROR
-========================================================= */
-
-function showPdfError(message) {
-
-    if (pdfLoading) {
-
-        pdfLoading.classList.add(
-            "hidden"
-        );
-
-    }
-
-
-    if (pdfErrorMessage) {
-
-        pdfErrorMessage.textContent =
-            message;
-
-    }
-
-
-    if (pdfError) {
-
-        pdfError.classList.remove(
-            "hidden"
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   HIDE PDF ERROR
-========================================================= */
-
-function hidePdfError() {
-
-    if (pdfError) {
-
-        pdfError.classList.add(
-            "hidden"
         );
 
     }
@@ -2226,10 +1601,9 @@ function hidePdfError() {
 
 function startPresence() {
 
+
     if (!currentProfile) {
-
         return;
-
     }
 
 
@@ -2264,6 +1638,10 @@ function startPresence() {
         );
 
 
+    /*
+     * Presence sync
+     */
+
     presenceChannel.on(
         "presence",
         {
@@ -2273,6 +1651,10 @@ function startPresence() {
         updateOnlineCount
     );
 
+
+    /*
+     * User joined
+     */
 
     presenceChannel.on(
         "presence",
@@ -2284,6 +1666,10 @@ function startPresence() {
     );
 
 
+    /*
+     * User left
+     */
+
     presenceChannel.on(
         "presence",
         {
@@ -2293,6 +1679,10 @@ function startPresence() {
         updateOnlineCount
     );
 
+
+    /*
+     * Subscribe
+     */
 
     presenceChannel.subscribe(
         async (status) => {
@@ -2336,7 +1726,7 @@ function startPresence() {
 
 
 /* =========================================================
-   ONLINE COUNT
+   UPDATE ONLINE COUNT
 ========================================================= */
 
 function updateOnlineCount() {
@@ -2347,7 +1737,6 @@ function updateOnlineCount() {
     ) {
 
         return;
-
     }
 
 
@@ -2401,24 +1790,27 @@ function updateOnlineCount() {
    SEND MESSAGE
 ========================================================= */
 
-async function handleMessageSubmit(event) {
+async function handleMessageSubmit(
+    event
+) {
 
     event.preventDefault();
 
+
+    /*
+     * Guest cannot send.
+     */
 
     if (!currentUser) {
 
         openLogin();
 
         return;
-
     }
 
 
     if (!messageInput) {
-
         return;
-
     }
 
 
@@ -2469,9 +1861,11 @@ async function handleMessageSubmit(event) {
                 error
             );
 
+
             alert(
                 "Message could not be sent."
             );
+
 
             return;
 
@@ -2494,6 +1888,7 @@ async function handleMessageSubmit(event) {
             "Unexpected send error:",
             error
         );
+
 
         alert(
             "Message could not be sent."
@@ -2518,12 +1913,16 @@ async function handleMessageSubmit(event) {
    MESSAGE KEYBOARD
 ========================================================= */
 
-function handleMessageKeydown(event) {
+function handleMessageKeydown(
+    event
+) {
+
 
     /*
      * Normal mode:
      *
      * Enter = send
+     *
      * Shift + Enter = newline
      */
 
@@ -2535,16 +1934,13 @@ function handleMessageKeydown(event) {
 
         event.preventDefault();
 
-
         if (messageForm) {
 
             messageForm.requestSubmit();
 
         }
 
-
         return;
-
     }
 
 
@@ -2552,6 +1948,7 @@ function handleMessageKeydown(event) {
      * Code mode:
      *
      * Enter = newline
+     *
      * Ctrl + Enter = send
      */
 
@@ -2562,7 +1959,6 @@ function handleMessageKeydown(event) {
     ) {
 
         event.preventDefault();
-
 
         if (messageForm) {
 
@@ -2581,12 +1977,12 @@ function handleMessageKeydown(event) {
 
 function toggleCodeMode() {
 
+
     if (!currentUser) {
 
         openLogin();
 
         return;
-
     }
 
 
@@ -2679,6 +2075,10 @@ function addMessage(message) {
     }
 
 
+    /*
+     * Check expiration.
+     */
+
     const expires =
         new Date(
             message.expires_at
@@ -2697,6 +2097,10 @@ function addMessage(message) {
     }
 
 
+    /*
+     * Prevent duplicate messages.
+     */
+
     if (
         document.querySelector(
             `[data-message-id="${message.id}"]`
@@ -2710,6 +2114,10 @@ function addMessage(message) {
 
     removeEmptyState();
 
+
+    /*
+     * Main message element.
+     */
 
     const messageElement =
         document.createElement(
@@ -2725,10 +2133,14 @@ function addMessage(message) {
         message.id;
 
 
+    /*
+     * Own message.
+     */
+
     if (
         currentProfile &&
         message.username ===
-            currentProfile.username
+        currentProfile.username
     ) {
 
         messageElement.classList.add(
@@ -2738,9 +2150,9 @@ function addMessage(message) {
     }
 
 
-    /*
-     * CODE MESSAGE
-     */
+    /* =====================================================
+       CODE MESSAGE
+    ===================================================== */
 
     if (message.is_code) {
 
@@ -2814,9 +2226,9 @@ function addMessage(message) {
     }
 
 
-    /*
-     * NORMAL MESSAGE
-     */
+    /* =====================================================
+       NORMAL MESSAGE
+    ===================================================== */
 
     else {
 
@@ -2928,13 +2340,18 @@ function addMessage(message) {
     }
 
 
+    /*
+     * Add to chat.
+     */
+
     messagesContainer.appendChild(
         messageElement
     );
 
 
     /*
-     * Automatic five-minute removal.
+     * Remove automatically when
+     * the 5-minute expiration occurs.
      */
 
     const remaining =
@@ -2959,8 +2376,8 @@ function addMessage(message) {
 
 
                 if (
-                    messagesContainer
-                        .children.length === 0
+                    messagesContainer.children
+                        .length === 0
                 ) {
 
                     showEmptyState();
@@ -3059,9 +2476,7 @@ function createCopyButton(
 function linkify(element) {
 
     if (!element) {
-
         return;
-
     }
 
 
@@ -3120,6 +2535,7 @@ function linkify(element) {
 
             }
 
+
             else {
 
                 element.appendChild(
@@ -3140,7 +2556,9 @@ function linkify(element) {
    TIME
 ========================================================= */
 
-function formatTime(timestamp) {
+function formatTime(
+    timestamp
+) {
 
     return new Date(
         timestamp
@@ -3165,9 +2583,7 @@ function formatTime(timestamp) {
 function showEmptyState() {
 
     if (!messagesContainer) {
-
         return;
-
     }
 
 
@@ -3232,9 +2648,7 @@ function showEmptyState() {
 function removeEmptyState() {
 
     if (!messagesContainer) {
-
         return;
-
     }
 
 
@@ -3257,12 +2671,12 @@ function removeEmptyState() {
    STATUS
 ========================================================= */
 
-function setStatus(status) {
+function setStatus(
+    status
+) {
 
     if (!connectionStatus) {
-
         return;
-
     }
 
 
@@ -3279,9 +2693,7 @@ function setStatus(status) {
 function autoResizeTextarea() {
 
     if (!messageInput) {
-
         return;
-
     }
 
 
@@ -3305,9 +2717,7 @@ function autoResizeTextarea() {
 function scrollToBottom() {
 
     if (!messagesContainer) {
-
         return;
-
     }
 
 
@@ -3329,6 +2739,10 @@ async function leaveChat() {
 
 
     try {
+
+        /*
+         * Stop presence first.
+         */
 
         if (presenceChannel) {
 
@@ -3358,6 +2772,10 @@ async function leaveChat() {
         }
 
 
+        /*
+         * Remove realtime.
+         */
+
         if (realtimeChannel) {
 
             await supabaseClient
@@ -3372,8 +2790,11 @@ async function leaveChat() {
         }
 
 
-        await supabaseClient.auth
-            .signOut();
+        /*
+         * Sign out from Supabase.
+         */
+
+        await supabaseClient.auth.signOut();
 
 
     } catch (error) {
@@ -3402,12 +2823,18 @@ async function resetLabChat() {
     currentUser =
         null;
 
+
     currentProfile =
         null;
+
 
     isCodeMode =
         false;
 
+
+    /*
+     * Guest UI.
+     */
 
     if (currentUserElement) {
 
@@ -3417,6 +2844,19 @@ async function resetLabChat() {
     }
 
 
+    if (loginNotice) {
+
+        loginNotice.classList.remove(
+            "hidden"
+        );
+
+    }
+
+
+    /*
+     * Clear chat.
+     */
+
     if (messagesContainer) {
 
         messagesContainer.innerHTML =
@@ -3424,6 +2864,10 @@ async function resetLabChat() {
 
     }
 
+
+    /*
+     * Reset code mode.
+     */
 
     if (codeButton) {
 
@@ -3443,6 +2887,10 @@ async function resetLabChat() {
     }
 
 
+    /*
+     * Reset message input.
+     */
+
     if (messageInput) {
 
         messageInput.value =
@@ -3454,6 +2902,10 @@ async function resetLabChat() {
     }
 
 
+    /*
+     * Reset online count.
+     */
+
     if (onlineCount) {
 
         onlineCount.textContent =
@@ -3461,6 +2913,10 @@ async function resetLabChat() {
 
     }
 
+
+    /*
+     * Disable chat.
+     */
 
     disableChatControls();
 
@@ -3471,20 +2927,19 @@ async function resetLabChat() {
 
 
     /*
-     * PDF remains public.
+     * IMPORTANT
+     *
+     * DO NOT HIDE THE PDF.
+     *
+     * PDF is public.
      */
 
-    if (
-        !pdfDocument &&
-        activePdfUrl
-    ) {
+    await loadActivePDF();
 
-        await openPdfDocument(
-            activePdfUrl
-        );
 
-    }
-
+    /*
+     * Show login.
+     */
 
     openLogin();
 
