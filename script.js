@@ -1,13 +1,12 @@
-javascript
 /* =========================================================
    LABCHAT
    Main Client Application
-   ========================================================= */
+========================================================= */
 
 
 /* =========================================================
    SUPABASE CONFIG
-   ========================================================= */
+========================================================= */
 
 const SUPABASE_URL =
     "https://izobeyuplyramoojazdg.supabase.co";
@@ -18,7 +17,7 @@ const SUPABASE_KEY =
 
 /* =========================================================
    SUPABASE CLIENT
-   ========================================================= */
+========================================================= */
 
 const supabaseClient =
     window.supabase.createClient(
@@ -28,11 +27,27 @@ const supabaseClient =
 
 
 /* =========================================================
-   PDF CONFIG
-   ========================================================= */
+   PDF CONFIGURATION
+========================================================= */
+
+/*
+ * The PDF is stored in the same repository/folder
+ * as index.html.
+ *
+ * Therefore we can load it directly using its
+ * relative path.
+ */
 
 const PDF_FILE =
     "XI-AI-UNIT-3-Python-Programming.pdf";
+
+
+/*
+ * PDF.js module.
+ *
+ * We dynamically import PDF.js so index.html does
+ * not need another script tag.
+ */
 
 const PDFJS_VERSION =
     "5.4.54";
@@ -45,32 +60,36 @@ const PDFJS_WORKER_URL =
 
 
 /* =========================================================
-   APPLICATION STATE
-   ========================================================= */
+   STATE
+========================================================= */
 
 let currentUser = null;
+
 let currentProfile = null;
 
 let realtimeChannel = null;
+
 let presenceChannel = null;
 
 let isCodeMode = false;
 
 let userSessionId =
     crypto.randomUUID();
-
+    
 const ADMIN_TAB_SESSION_KEY =
     "labchat_admin_tab_session";
 
 
 /* =========================================================
    PDF STATE
-   ========================================================= */
+========================================================= */
 
 let pdfjsLib = null;
+
 let pdfDocument = null;
 
 let pdfCurrentPage = 1;
+
 let pdfZoom = 1;
 
 let pdfFitMode = true;
@@ -79,20 +98,17 @@ let pdfPageObserver = null;
 
 let pdfRenderToken = 0;
 
+
+/*
+ * Prevent repeated PDF initialization.
+ */
+
 let pdfInitialized = false;
 
 
 /* =========================================================
-   MESSAGE EXPIRY TIMERS
-   ========================================================= */
-
-const messageTimers =
-    new Map();
-
-
-/* =========================================================
    DOM ELEMENTS
-   ========================================================= */
+========================================================= */
 
 
 /* ---------- PDF ---------- */
@@ -168,11 +184,16 @@ const pdfFitButton =
     );
 
 
-/* ---------- LOGIN ---------- */
+/* ---------- Login ---------- */
 
 const loginOverlay =
     document.getElementById(
         "loginOverlay"
+    );
+
+const loginModal =
+    document.getElementById(
+        "loginModal"
     );
 
 const loginForm =
@@ -206,7 +227,7 @@ const closeLoginButton =
     );
 
 
-/* ---------- CHAT ---------- */
+/* ---------- Chat ---------- */
 
 const chatScreen =
     document.getElementById(
@@ -266,7 +287,7 @@ const leaveButton =
 
 /* =========================================================
    INITIALIZATION
-   ========================================================= */
+========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -280,36 +301,42 @@ async function initializeLabChat() {
         "LabChat initializing..."
     );
 
+
     setStatus(
         "Loading..."
     );
 
+
+    /*
+     * Setup controls first.
+     */
+
     setupLoginControls();
+
     setupMessageControls();
+
     setupPDFControls();
+
     setupKeyboardShortcuts();
 
     disableChatControls();
 
+
     /*
-     * PDF is public, so initialize it
-     * before authentication.
+     * PDF is public.
+     *
+     * Load it before authentication.
      */
 
     await initializePDFViewer();
 
+
     /*
-     * Restore existing Supabase session.
+     * Restore Supabase session.
      */
 
     await restoreSession();
 
-    /*
-     * Listen for future authentication
-     * changes.
-     */
-
-    setupAuthListener();
 
     console.log(
         "LabChat initialization complete."
@@ -318,53 +345,8 @@ async function initializeLabChat() {
 
 
 /* =========================================================
-   AUTH STATE LISTENER
-   ========================================================= */
-
-function setupAuthListener() {
-
-    supabaseClient.auth.onAuthStateChange(
-        async (
-            event,
-            session
-        ) => {
-
-            console.log(
-                "Auth event:",
-                event
-            );
-
-            if (
-                event ===
-                "SIGNED_OUT"
-            ) {
-
-                await resetLabChat();
-
-                return;
-            }
-
-            if (
-                event ===
-                "SIGNED_IN" &&
-                session &&
-                !currentProfile
-            ) {
-
-                await loadUserProfile(
-                    session.user
-                );
-
-            }
-
-        }
-    );
-}
-
-
-/* =========================================================
-   PDF INITIALIZATION
-   ========================================================= */
+   PDF VIEWER INITIALIZATION
+========================================================= */
 
 async function initializePDFViewer() {
 
@@ -376,6 +358,7 @@ async function initializePDFViewer() {
 
     }
 
+
     if (
         !pdfViewerScreen ||
         !pdfViewport ||
@@ -383,30 +366,49 @@ async function initializePDFViewer() {
     ) {
 
         console.error(
-            "PDF viewer elements are missing."
+            "PDF viewer elements are missing from index.html."
         );
 
         return;
 
     }
 
-    pdfInitialized = true;
+
+    pdfInitialized =
+        true;
+
 
     showPDFLoading(
         true
     );
 
+
     hidePDFError();
 
+
     try {
+
+        /*
+         * Dynamically load PDF.js.
+         */
 
         pdfjsLib =
             await import(
                 PDFJS_URL
             );
 
+
+        /*
+         * Configure the PDF.js worker.
+         */
+
         pdfjsLib.GlobalWorkerOptions.workerSrc =
             PDFJS_WORKER_URL;
+
+
+        /*
+         * Set title.
+         */
 
         if (
             pdfDocumentTitle
@@ -417,16 +419,23 @@ async function initializePDFViewer() {
 
         }
 
+
+        /*
+         * Load the actual local PDF.
+         */
+
         const pdfURL =
             new URL(
                 PDF_FILE,
                 window.location.href
             ).href;
 
+
         console.log(
             "Loading PDF:",
             pdfURL
         );
+
 
         const loadingTask =
             pdfjsLib.getDocument(
@@ -436,8 +445,10 @@ async function initializePDFViewer() {
                 }
             );
 
+
         pdfDocument =
             await loadingTask.promise;
+
 
         console.log(
             "PDF loaded:",
@@ -445,38 +456,64 @@ async function initializePDFViewer() {
             "pages"
         );
 
+
+        /*
+         * Render every page into one continuous
+         * scrolling document.
+         */
+
         await renderAllPDFPages();
+
+
+        /*
+         * Observe the visible page so the
+         * toolbar page number follows scrolling.
+         */
 
         setupPDFPageObserver();
 
-        pdfCurrentPage = 1;
+
+        /*
+         * Update initial toolbar state.
+         */
+
+        pdfCurrentPage =
+            1;
+
 
         updatePDFPageNumber();
+
+
         updatePDFZoomDisplay();
+
 
         showPDFLoading(
             false
         );
 
+
         console.log(
             "PDF viewer ready."
         );
 
-    } catch (
-        error
-    ) {
+
+    } catch (error) {
 
         console.error(
             "PDF initialization error:",
             error
         );
 
+
         showPDFLoading(
             false
         );
 
+
         showPDFError(
-            `Unable to load the PDF. Make sure ${PDF_FILE} is in the same folder as index.html.`
+            "Unable to load the PDF. Make sure " +
+            PDF_FILE +
+            " is in the same folder as index.html."
         );
 
     }
@@ -485,67 +522,123 @@ async function initializePDFViewer() {
 
 /* =========================================================
    PDF CONTROLS
-   ========================================================= */
+========================================================= */
 
 function setupPDFControls() {
 
-    pdfPreviousButton?.addEventListener(
-        "click",
-        () => {
+    if (
+        pdfPreviousButton
+    ) {
 
-            goToPDFPage(
-                pdfCurrentPage - 1
-            );
+        pdfPreviousButton.addEventListener(
+            "click",
+            () => {
 
-        }
-    );
+                goToPDFPage(
+                    pdfCurrentPage - 1
+                );
 
-    pdfNextButton?.addEventListener(
-        "click",
-        () => {
+            }
+        );
 
-            goToPDFPage(
-                pdfCurrentPage + 1
-            );
+    }
 
-        }
-    );
 
-    pdfZoomOutButton?.addEventListener(
-        "click",
-        () => {
+    if (
+        pdfNextButton
+    ) {
 
-            changePDFZoom(
-                -0.1
-            );
+        pdfNextButton.addEventListener(
+            "click",
+            () => {
 
-        }
-    );
+                goToPDFPage(
+                    pdfCurrentPage + 1
+                );
 
-    pdfZoomInButton?.addEventListener(
-        "click",
-        () => {
+            }
+        );
 
-            changePDFZoom(
-                0.1
-            );
+    }
 
-        }
-    );
 
-    pdfFitButton?.addEventListener(
-        "click",
-        fitPDFToWidth
-    );
+    if (
+        pdfZoomOutButton
+    ) {
 
-    pdfViewport?.addEventListener(
-        "scroll",
-        updatePDFCurrentPageFromScroll,
-        {
-            passive:
-                true
-        }
-    );
+        pdfZoomOutButton.addEventListener(
+            "click",
+            () => {
+
+                changePDFZoom(
+                    -0.1
+                );
+
+            }
+        );
+
+    }
+
+
+    if (
+        pdfZoomInButton
+    ) {
+
+        pdfZoomInButton.addEventListener(
+            "click",
+            () => {
+
+                changePDFZoom(
+                    0.1
+                );
+
+            }
+        );
+
+    }
+
+
+    if (
+        pdfFitButton
+    ) {
+
+        pdfFitButton.addEventListener(
+            "click",
+            () => {
+
+                fitPDFToWidth();
+
+            }
+        );
+
+    }
+
+
+    /*
+     * If the user manually scrolls,
+     * keep the viewer focused.
+     */
+
+    if (
+        pdfViewport
+    ) {
+
+        pdfViewport.addEventListener(
+            "scroll",
+            updatePDFCurrentPageFromScroll,
+            {
+                passive:
+                    true
+            }
+        );
+
+    }
+
+
+    /*
+     * Resize the PDF when the browser
+     * window changes size.
+     */
 
     window.addEventListener(
         "resize",
@@ -559,8 +652,6 @@ function setupPDFControls() {
 
                     await renderAllPDFPages();
 
-                    setupPDFPageObserver();
-
                 }
 
             },
@@ -572,25 +663,42 @@ function setupPDFControls() {
 
 /* =========================================================
    RENDER ALL PDF PAGES
-   ========================================================= */
+========================================================= */
 
 async function renderAllPDFPages() {
 
     if (
         !pdfDocument ||
-        !pdfPages ||
-        !pdfViewport
+        !pdfPages
     ) {
 
         return;
 
     }
 
+
+    /*
+     * Every render gets a token.
+     *
+     * If the user changes zoom while rendering,
+     * the old render becomes invalid.
+     */
+
     const renderToken =
         ++pdfRenderToken;
 
+
+    /*
+     * Remember current page.
+     */
+
     const pageToRestore =
         pdfCurrentPage;
+
+
+    /*
+     * Remove old observer.
+     */
 
     if (
         pdfPageObserver
@@ -603,14 +711,32 @@ async function renderAllPDFPages() {
 
     }
 
+
+    /*
+     * Clear current pages.
+     */
+
     pdfPages.innerHTML =
         "";
+
+
+    /*
+     * Render pages sequentially.
+     *
+     * This prevents the browser from trying
+     * to render all 27 canvas operations at
+     * exactly the same time.
+     */
 
     for (
         let pageNumber = 1;
         pageNumber <= pdfDocument.numPages;
         pageNumber++
     ) {
+
+        /*
+         * Stop if a newer render started.
+         */
 
         if (
             renderToken !==
@@ -621,12 +747,18 @@ async function renderAllPDFPages() {
 
         }
 
+
         await renderSinglePDFPage(
             pageNumber,
             renderToken
         );
 
     }
+
+
+    /*
+     * Restore current page after rendering.
+     */
 
     pdfCurrentPage =
         Math.min(
@@ -637,7 +769,13 @@ async function renderAllPDFPages() {
             pdfDocument.numPages
         );
 
+
     updatePDFPageNumber();
+
+
+    /*
+     * Restore scroll position.
+     */
 
     requestAnimationFrame(
         () => {
@@ -647,6 +785,7 @@ async function renderAllPDFPages() {
                     pdfCurrentPage
                 );
 
+
             if (
                 pageElement &&
                 pdfViewport
@@ -655,7 +794,8 @@ async function renderAllPDFPages() {
                 pdfViewport.scrollTop =
                     Math.max(
                         0,
-                        pageElement.offsetTop - 16
+                        pageElement.offsetTop -
+                        16
                     );
 
             }
@@ -667,7 +807,7 @@ async function renderAllPDFPages() {
 
 /* =========================================================
    RENDER SINGLE PDF PAGE
-   ========================================================= */
+========================================================= */
 
 async function renderSinglePDFPage(
     pageNumber,
@@ -679,6 +819,7 @@ async function renderSinglePDFPage(
             pageNumber
         );
 
+
     if (
         renderToken !==
         pdfRenderToken
@@ -688,8 +829,19 @@ async function renderSinglePDFPage(
 
     }
 
+
+    /*
+     * Determine scale.
+     */
+
     let scale =
         pdfZoom;
+
+
+    /*
+     * Fit mode means the page should fit
+     * the available viewer width.
+     */
 
     if (
         pdfFitMode
@@ -703,17 +855,25 @@ async function renderSinglePDFPage(
                 }
             );
 
+
         const availableWidth =
             Math.max(
                 300,
-                pdfViewport.clientWidth - 40
+                pdfViewport.clientWidth -
+                40
             );
+
 
         scale =
             availableWidth /
             baseViewport.width;
 
     }
+
+
+    /*
+     * Prevent extremely tiny or huge pages.
+     */
 
     scale =
         Math.max(
@@ -724,37 +884,55 @@ async function renderSinglePDFPage(
             )
         );
 
+
     const viewport =
         page.getViewport(
             {
-                scale
+                scale:
+                    scale
             }
         );
+
+
+    /*
+     * Page wrapper.
+     */
 
     const pageContainer =
         document.createElement(
             "div"
         );
 
+
     pageContainer.className =
         "pdf-page";
+
 
     pageContainer.dataset.pageNumber =
         pageNumber;
 
+
     pageContainer.style.width =
         `${viewport.width}px`;
 
+
     pageContainer.style.minHeight =
         `${viewport.height}px`;
+
+
+    /*
+     * Canvas.
+     */
 
     const canvas =
         document.createElement(
             "canvas"
         );
 
+
     canvas.className =
         "pdf-page-canvas";
+
 
     const context =
         canvas.getContext(
@@ -765,11 +943,19 @@ async function renderSinglePDFPage(
             }
         );
 
+
+    /*
+     * Use device pixel ratio for sharper
+     * rendering on high-DPI displays.
+     */
+
     const devicePixelRatio =
         Math.min(
-            window.devicePixelRatio || 1,
+            window.devicePixelRatio ||
+            1,
             2
         );
+
 
     canvas.width =
         Math.floor(
@@ -777,17 +963,26 @@ async function renderSinglePDFPage(
             devicePixelRatio
         );
 
+
     canvas.height =
         Math.floor(
             viewport.height *
             devicePixelRatio
         );
 
+
     canvas.style.width =
         `${viewport.width}px`;
 
+
     canvas.style.height =
         `${viewport.height}px`;
+
+
+    /*
+     * Render at high resolution while
+     * keeping the CSS size unchanged.
+     */
 
     const renderViewport =
         page.getViewport(
@@ -798,13 +993,20 @@ async function renderSinglePDFPage(
             }
         );
 
+
     pageContainer.appendChild(
         canvas
     );
 
+
     pdfPages.appendChild(
         pageContainer
     );
+
+
+    /*
+     * Render page.
+     */
 
     await page.render(
         {
@@ -816,13 +1018,18 @@ async function renderSinglePDFPage(
         }
     ).promise;
 
+
+    /*
+     * Release page resources.
+     */
+
     page.cleanup();
 }
 
 
 /* =========================================================
    PDF PAGE OBSERVER
-   ========================================================= */
+========================================================= */
 
 function setupPDFPageObserver() {
 
@@ -835,7 +1042,22 @@ function setupPDFPageObserver() {
 
     }
 
-    pdfPageObserver?.disconnect();
+
+    if (
+        pdfPageObserver
+    ) {
+
+        pdfPageObserver.disconnect();
+
+    }
+
+
+    /*
+     * Observe pages against the PDF viewport.
+     *
+     * The page with the greatest visible
+     * intersection becomes the current page.
+     */
 
     pdfPageObserver =
         new IntersectionObserver(
@@ -844,8 +1066,10 @@ function setupPDFPageObserver() {
                 let bestEntry =
                     null;
 
+
                 for (
-                    const entry of entries
+                    const entry
+                    of entries
                 ) {
 
                     if (
@@ -855,6 +1079,7 @@ function setupPDFPageObserver() {
                         continue;
 
                     }
+
 
                     if (
                         !bestEntry ||
@@ -869,14 +1094,19 @@ function setupPDFPageObserver() {
 
                 }
 
+
                 if (
                     bestEntry
                 ) {
 
                     const pageNumber =
                         Number(
-                            bestEntry.target.dataset.pageNumber
+                            bestEntry
+                                .target
+                                .dataset
+                                .pageNumber
                         );
+
 
                     if (
                         pageNumber
@@ -884,6 +1114,7 @@ function setupPDFPageObserver() {
 
                         pdfCurrentPage =
                             pageNumber;
+
 
                         updatePDFPageNumber();
 
@@ -907,25 +1138,28 @@ function setupPDFPageObserver() {
             }
         );
 
-    pdfPages
-        .querySelectorAll(
+
+    const pageElements =
+        pdfPages.querySelectorAll(
             ".pdf-page"
-        )
-        .forEach(
-            page => {
-
-                pdfPageObserver.observe(
-                    page
-                );
-
-            }
         );
+
+
+    pageElements.forEach(
+        (page) => {
+
+            pdfPageObserver.observe(
+                page
+            );
+
+        }
+    );
 }
 
 
 /* =========================================================
    PDF CURRENT PAGE FROM SCROLL
-   ========================================================= */
+========================================================= */
 
 function updatePDFCurrentPageFromScroll() {
 
@@ -938,9 +1172,17 @@ function updatePDFCurrentPageFromScroll() {
 
     }
 
+
     const viewportMiddle =
         pdfViewport.scrollTop +
         pdfViewport.clientHeight / 2;
+
+
+    const pageElements =
+        pdfPages.querySelectorAll(
+            ".pdf-page"
+        );
+
 
     let closestPage =
         1;
@@ -948,64 +1190,76 @@ function updatePDFCurrentPageFromScroll() {
     let closestDistance =
         Infinity;
 
-    pdfPages
-        .querySelectorAll(
-            ".pdf-page"
-        )
-        .forEach(
-            pageElement => {
 
-                const pageTop =
-                    pageElement.offsetTop;
+    pageElements.forEach(
+        (pageElement) => {
 
-                const pageBottom =
-                    pageTop +
-                    pageElement.offsetHeight;
+            const pageTop =
+                pageElement.offsetTop;
 
-                const pageMiddle =
-                    pageTop +
-                    pageElement.offsetHeight / 2;
+            const pageBottom =
+                pageTop +
+                pageElement.offsetHeight;
 
-                if (
-                    viewportMiddle >= pageTop &&
-                    viewportMiddle <= pageBottom
-                ) {
 
-                    closestPage =
-                        Number(
-                            pageElement.dataset.pageNumber
-                        );
+            const pageMiddle =
+                pageTop +
+                pageElement.offsetHeight /
+                2;
 
-                    closestDistance =
-                        0;
 
-                    return;
+            /*
+             * If viewport middle is inside
+             * this page, this is the best match.
+             */
 
-                }
+            if (
+                viewportMiddle >= pageTop &&
+                viewportMiddle <= pageBottom
+            ) {
 
-                const distance =
-                    Math.abs(
-                        viewportMiddle -
-                        pageMiddle
+                closestPage =
+                    Number(
+                        pageElement
+                            .dataset
+                            .pageNumber
                     );
 
-                if (
-                    distance <
-                    closestDistance
-                ) {
+                closestDistance =
+                    0;
 
-                    closestDistance =
-                        distance;
-
-                    closestPage =
-                        Number(
-                            pageElement.dataset.pageNumber
-                        );
-
-                }
+                return;
 
             }
-        );
+
+
+            const distance =
+                Math.abs(
+                    viewportMiddle -
+                    pageMiddle
+                );
+
+
+            if (
+                distance <
+                closestDistance
+            ) {
+
+                closestDistance =
+                    distance;
+
+                closestPage =
+                    Number(
+                        pageElement
+                            .dataset
+                            .pageNumber
+                    );
+
+            }
+
+        }
+    );
+
 
     if (
         closestPage !==
@@ -1015,6 +1269,7 @@ function updatePDFCurrentPageFromScroll() {
         pdfCurrentPage =
             closestPage;
 
+
         updatePDFPageNumber();
 
     }
@@ -1023,7 +1278,7 @@ function updatePDFCurrentPageFromScroll() {
 
 /* =========================================================
    GO TO PDF PAGE
-   ========================================================= */
+========================================================= */
 
 function goToPDFPage(
     pageNumber
@@ -1038,6 +1293,7 @@ function goToPDFPage(
 
     }
 
+
     const targetPage =
         Math.max(
             1,
@@ -1047,10 +1303,12 @@ function goToPDFPage(
             )
         );
 
+
     const pageElement =
         getPDFPageElement(
             targetPage
         );
+
 
     if (
         !pageElement
@@ -1060,10 +1318,13 @@ function goToPDFPage(
 
     }
 
+
     pdfCurrentPage =
         targetPage;
 
+
     updatePDFPageNumber();
+
 
     pageElement.scrollIntoView(
         {
@@ -1079,21 +1340,30 @@ function goToPDFPage(
 
 /* =========================================================
    GET PDF PAGE ELEMENT
-   ========================================================= */
+========================================================= */
 
 function getPDFPageElement(
     pageNumber
 ) {
 
-    return pdfPages?.querySelector(
+    if (
+        !pdfPages
+    ) {
+
+        return null;
+
+    }
+
+
+    return pdfPages.querySelector(
         `.pdf-page[data-page-number="${pageNumber}"]`
-    ) || null;
+    );
 }
 
 
 /* =========================================================
-   PDF PAGE NUMBER
-   ========================================================= */
+   PDF PAGE NUMBER DISPLAY
+========================================================= */
 
 function updatePDFPageNumber() {
 
@@ -1105,11 +1375,16 @@ function updatePDFPageNumber() {
 
     }
 
+
     const total =
-        pdfDocument?.numPages || 1;
+        pdfDocument
+            ? pdfDocument.numPages
+            : 1;
+
 
     pdfPageNumber.textContent =
         `${pdfCurrentPage} / ${total}`;
+
 
     if (
         pdfPreviousButton
@@ -1119,6 +1394,7 @@ function updatePDFPageNumber() {
             pdfCurrentPage <= 1;
 
     }
+
 
     if (
         pdfNextButton
@@ -1133,7 +1409,7 @@ function updatePDFPageNumber() {
 
 /* =========================================================
    PDF ZOOM
-   ========================================================= */
+========================================================= */
 
 async function changePDFZoom(
     amount
@@ -1147,26 +1423,55 @@ async function changePDFZoom(
 
     }
 
+
     const newZoom =
         Math.max(
             0.5,
             Math.min(
                 2.5,
-                pdfZoom + amount
+                pdfZoom +
+                amount
             )
         );
 
+
+    /*
+     * If already at the requested zoom,
+     * do nothing.
+     */
+
+    if (
+        Math.abs(
+            newZoom -
+            pdfZoom
+        ) < 0.001 &&
+        !pdfFitMode
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Zoom mode disables fit mode.
+     */
+
     pdfFitMode =
         false;
+
 
     pdfZoom =
         Math.round(
             newZoom * 10
         ) / 10;
 
+
     updatePDFZoomDisplay();
 
+
     await renderAllPDFPages();
+
 
     setupPDFPageObserver();
 }
@@ -1174,7 +1479,7 @@ async function changePDFZoom(
 
 /* =========================================================
    FIT PDF TO WIDTH
-   ========================================================= */
+========================================================= */
 
 async function fitPDFToWidth() {
 
@@ -1186,12 +1491,16 @@ async function fitPDFToWidth() {
 
     }
 
+
     pdfFitMode =
         true;
 
+
     updatePDFZoomDisplay();
 
+
     await renderAllPDFPages();
+
 
     setupPDFPageObserver();
 }
@@ -1199,7 +1508,7 @@ async function fitPDFToWidth() {
 
 /* =========================================================
    PDF ZOOM DISPLAY
-   ========================================================= */
+========================================================= */
 
 function updatePDFZoomDisplay() {
 
@@ -1211,29 +1520,53 @@ function updatePDFZoomDisplay() {
 
     }
 
-    pdfZoomValue.textContent =
+
+    if (
         pdfFitMode
-            ? "Fit"
-            : `${Math.round(
-                pdfZoom * 100
-            )}%`;
+    ) {
+
+        pdfZoomValue.textContent =
+            "Fit";
+
+        return;
+
+    }
+
+
+    pdfZoomValue.textContent =
+        `${Math.round(
+            pdfZoom * 100
+        )}%`;
 }
 
 
 /* =========================================================
-   PDF LOADING / ERROR
-   ========================================================= */
+   PDF LOADING
+========================================================= */
 
 function showPDFLoading(
     show
 ) {
 
-    pdfLoading?.classList.toggle(
+    if (
+        !pdfLoading
+    ) {
+
+        return;
+
+    }
+
+
+    pdfLoading.classList.toggle(
         "hidden",
         !show
     );
 }
 
+
+/* =========================================================
+   PDF ERROR
+========================================================= */
 
 function showPDFError(
     message
@@ -1245,49 +1578,237 @@ function showPDFError(
 
         pdfErrorMessage.textContent =
             message;
-
     }
 
-    pdfError?.classList.remove(
-        "hidden"
-    );
+
+    if (
+        pdfError
+    ) {
+
+        pdfError.classList.remove(
+            "hidden"
+        );
+
+    }
 }
 
 
+/* =========================================================
+   HIDE PDF ERROR
+========================================================= */
+
 function hidePDFError() {
 
-    pdfError?.classList.add(
-        "hidden"
-    );
+    if (
+        pdfError
+    ) {
+
+        pdfError.classList.add(
+            "hidden"
+        );
+
+    }
 }
 
 
 /* =========================================================
    LOGIN CONTROLS
-   ========================================================= */
+========================================================= */
 
 function setupLoginControls() {
 
-    loginForm?.addEventListener(
-        "submit",
-        handleLogin
-    );
+    if (
+        loginForm
+    ) {
 
-    closeLoginButton?.addEventListener(
-        "click",
-        closeLogin
-    );
+        loginForm.addEventListener(
+            "submit",
+            handleLogin
+        );
 
-    loginOverlay?.addEventListener(
-        "click",
-        event => {
+    }
+
+
+    if (
+        closeLoginButton
+    ) {
+
+        closeLoginButton.addEventListener(
+            "click",
+            closeLogin
+        );
+
+    }
+
+
+    if (
+        loginOverlay
+    ) {
+
+        loginOverlay.addEventListener(
+            "click",
+            (event) => {
+
+                if (
+                    event.target ===
+                    loginOverlay
+                ) {
+
+                    closeLogin();
+
+                }
+
+            }
+        );
+
+    }
+}
+
+
+/* =========================================================
+   MESSAGE CONTROLS
+========================================================= */
+
+function setupMessageControls() {
+
+    if (
+        messageForm
+    ) {
+
+        messageForm.addEventListener(
+            "submit",
+            handleMessageSubmit
+        );
+
+    }
+
+
+    if (
+        messageInput
+    ) {
+
+        messageInput.addEventListener(
+            "keydown",
+            handleMessageKeydown
+        );
+
+
+        messageInput.addEventListener(
+            "input",
+            autoResizeTextarea
+        );
+
+    }
+
+
+    if (
+        codeButton
+    ) {
+
+        codeButton.addEventListener(
+            "click",
+            toggleCodeMode
+        );
+
+    }
+
+
+    if (
+        leaveButton
+    ) {
+
+        leaveButton.addEventListener(
+            "click",
+            leaveChat
+        );
+
+    }
+}
+
+
+/* =========================================================
+   KEYBOARD SHORTCUTS
+========================================================= */
+
+function setupKeyboardShortcuts() {
+
+    document.addEventListener(
+        "keydown",
+        (event) => {
+
+            /*
+             * Ctrl + Shift + L
+             *
+             * Opens the login popup.
+             */
 
             if (
-                event.target ===
-                loginOverlay
+                event.ctrlKey &&
+                event.shiftKey &&
+                event.key.toLowerCase() ===
+                "l"
+            ) {
+
+                event.preventDefault();
+
+                openLogin();
+
+                return;
+            }
+
+
+            /*
+             * Escape closes login.
+             */
+
+            if (
+                event.key ===
+                "Escape" &&
+                loginOverlay &&
+                !loginOverlay.classList.contains(
+                    "hidden"
+                )
             ) {
 
                 closeLogin();
+
+            }
+
+
+            /*
+             * PDF keyboard navigation.
+             */
+
+            if (
+                pdfViewerScreen &&
+                !pdfViewerScreen.classList.contains(
+                    "hidden"
+                ) &&
+                !loginOverlayIsOpen()
+            ) {
+
+                if (
+                    event.key ===
+                    "ArrowLeft"
+                ) {
+
+                    goToPDFPage(
+                        pdfCurrentPage - 1
+                    );
+
+                }
+
+
+                if (
+                    event.key ===
+                    "ArrowRight"
+                ) {
+
+                    goToPDFPage(
+                        pdfCurrentPage + 1
+                    );
+
+                }
 
             }
 
@@ -1297,8 +1818,23 @@ function setupLoginControls() {
 
 
 /* =========================================================
+   LOGIN OVERLAY STATE
+========================================================= */
+
+function loginOverlayIsOpen() {
+
+    return (
+        loginOverlay &&
+        !loginOverlay.classList.contains(
+            "hidden"
+        )
+    );
+}
+
+
+/* =========================================================
    OPEN LOGIN
-   ========================================================= */
+========================================================= */
 
 function openLogin() {
 
@@ -1310,16 +1846,25 @@ function openLogin() {
 
     }
 
+
     loginOverlay.classList.remove(
         "hidden"
     );
 
+
     clearLoginError();
+
 
     setTimeout(
         () => {
 
-            loginIdentifier?.focus();
+            if (
+                loginIdentifier
+            ) {
+
+                loginIdentifier.focus();
+
+            }
 
         },
         50
@@ -1329,11 +1874,20 @@ function openLogin() {
 
 /* =========================================================
    CLOSE LOGIN
-   ========================================================= */
+========================================================= */
 
 function closeLogin() {
 
-    loginOverlay?.classList.add(
+    if (
+        !loginOverlay
+    ) {
+
+        return;
+
+    }
+
+
+    loginOverlay.classList.add(
         "hidden"
     );
 }
@@ -1341,7 +1895,7 @@ function closeLogin() {
 
 /* =========================================================
    LOGIN
-   ========================================================= */
+========================================================= */
 
 async function handleLogin(
     event
@@ -1349,23 +1903,30 @@ async function handleLogin(
 
     event.preventDefault();
 
+
     if (
         !loginIdentifier ||
         !loginPassword
     ) {
 
-        return;
+        console.error(
+            "Login elements are missing."
+        );
 
+        return;
     }
 
-    const email =
+
+    const identifier =
         loginIdentifier.value.trim();
+
 
     const password =
         loginPassword.value;
 
+
     if (
-        !email ||
+        !identifier ||
         !password
     ) {
 
@@ -1374,26 +1935,39 @@ async function handleLogin(
         );
 
         return;
-
     }
 
+
+    clearLoginError();
+
+
+    setLoginLoading(
+        true
+    );
+
+
+    /*
+     * Supabase Auth requires email login
+     * in the current architecture.
+     */
+
     if (
-        !email.includes("@")
+        !identifier.includes("@")
     ) {
 
         showLoginError(
             "Please use your Supabase Auth email."
         );
 
-        return;
 
+        setLoginLoading(
+            false
+        );
+
+
+        return;
     }
 
-    clearLoginError();
-
-    setLoginLoading(
-        true
-    );
 
     try {
 
@@ -1401,12 +1975,17 @@ async function handleLogin(
             data,
             error
         } =
-            await supabaseClient.auth.signInWithPassword(
-                {
-                    email,
-                    password
-                }
-            );
+            await supabaseClient.auth
+                .signInWithPassword(
+                    {
+                        email:
+                            identifier,
+
+                        password:
+                            password
+                    }
+                );
+
 
         if (
             error
@@ -1417,32 +1996,47 @@ async function handleLogin(
                 error
             );
 
+
             showLoginError(
                 getLoginErrorMessage(
                     error
                 )
             );
 
-            return;
 
+            setLoginLoading(
+                false
+            );
+
+
+            return;
         }
 
+
         if (
-            !data?.user
+            !data ||
+            !data.user
         ) {
 
             showLoginError(
                 "Login failed. Please try again."
             );
 
-            return;
 
+            setLoginLoading(
+                false
+            );
+
+
+            return;
         }
+
 
         const success =
             await loadUserProfile(
                 data.user
             );
+
 
         if (
             !success
@@ -1450,12 +2044,24 @@ async function handleLogin(
 
             await supabaseClient.auth.signOut();
 
-            return;
 
+            setLoginLoading(
+                false
+            );
+
+
+            return;
         }
+
 
         loginPassword.value =
             "";
+
+
+        setLoginLoading(
+            false
+        );
+
 
     } catch (
         error
@@ -1466,11 +2072,11 @@ async function handleLogin(
             error
         );
 
+
         showLoginError(
             "An unexpected error occurred."
         );
 
-    } finally {
 
         setLoginLoading(
             false
@@ -1482,7 +2088,7 @@ async function handleLogin(
 
 /* =========================================================
    RESTORE SESSION
-   ========================================================= */
+========================================================= */
 
 async function restoreSession() {
 
@@ -1492,42 +2098,50 @@ async function restoreSession() {
             data,
             error
         } =
-            await supabaseClient.auth.getSession();
+            await supabaseClient.auth
+                .getSession();
 
-        if (
-            error
-        ) {
+
+        if (error) {
 
             console.error(
                 "Session error:",
                 error
             );
 
-            showGuestState();
-
             setStatus(
                 "Authentication error"
             );
 
             return;
-
         }
 
+
+        /*
+         * No existing session.
+         */
+
         if (
-            !data?.session
+            !data ||
+            !data.session
         ) {
+
+            setStatus(
+                "Signed out"
+            );
 
             showGuestState();
 
             return;
-
         }
+
 
         const session =
             data.session;
 
+
         /*
-         * Check role before loading profile.
+         * Check the user's role.
          */
 
         const {
@@ -1545,12 +2159,11 @@ async function restoreSession() {
                 )
                 .maybeSingle();
 
-        if (
-            profileError
-        ) {
+
+        if (profileError) {
 
             console.error(
-                "Profile check error:",
+                "Session profile check error:",
                 profileError
             );
 
@@ -1559,17 +2172,19 @@ async function restoreSession() {
             showGuestState();
 
             return;
-
         }
 
+
         /*
-         * Admin sessions are valid only
-         * for the current browser tab.
+         * ADMIN
+         *
+         * Admin login is only valid for
+         * the current browser tab.
          */
 
         if (
-            profile?.role ===
-            "admin"
+            profile &&
+            profile.role === "admin"
         ) {
 
             const adminTabSession =
@@ -1577,24 +2192,118 @@ async function restoreSession() {
                     ADMIN_TAB_SESSION_KEY
                 );
 
+
+            /*
+             * Supabase remembers the login,
+             * but this tab does not.
+             *
+             * Therefore this is an old
+             * admin session.
+             */
+
             if (
-                adminTabSession !==
-                "true"
+                adminTabSession !== "true"
             ) {
+
+                console.log(
+                    "Old admin session detected. Signing out..."
+                );
+
 
                 await supabaseClient.auth.signOut();
 
+
                 showGuestState();
 
-                return;
 
+                setStatus(
+                    "Signed out"
+                );
+
+
+                return;
             }
 
         }
 
+
+        /*
+         * Existing valid session.
+         */
+
         await loadUserProfile(
             session.user
         );
+
+
+    } catch (error) {
+
+        console.error(
+            "Session restore error:",
+            error
+        );
+
+        setStatus(
+            "Authentication error"
+        );
+
+    }
+
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.auth
+                .getSession();
+
+
+        if (
+            error
+        ) {
+
+            console.error(
+                "Session error:",
+                error
+            );
+
+
+            setStatus(
+                "Authentication error"
+            );
+
+
+            showGuestState();
+
+
+            return;
+        }
+
+
+        if (
+            !data ||
+            !data.session
+        ) {
+
+            setStatus(
+                "Ready"
+            );
+
+
+            showGuestState();
+
+
+            return;
+        }
+
+
+        await loadUserProfile(
+            data.session.user
+        );
+
 
     } catch (
         error
@@ -1605,19 +2314,70 @@ async function restoreSession() {
             error
         );
 
-        showGuestState();
 
         setStatus(
             "Authentication error"
         );
+
+
+        showGuestState();
 
     }
 }
 
 
 /* =========================================================
+   AUTH STATE LISTENER
+========================================================= */
+
+supabaseClient.auth.onAuthStateChange(
+    async (
+        event,
+        session
+    ) => {
+
+        console.log(
+            "Auth event:",
+            event
+        );
+
+
+        if (
+            event ===
+            "SIGNED_OUT"
+        ) {
+
+            await resetLabChat();
+
+            return;
+        }
+
+
+        if (
+            event ===
+            "SIGNED_IN" &&
+            session
+        ) {
+
+            if (
+                !currentProfile
+            ) {
+
+                await loadUserProfile(
+                    session.user
+                );
+
+            }
+
+        }
+
+    }
+);
+
+
+/* =========================================================
    LOAD USER PROFILE
-   ========================================================= */
+========================================================= */
 
 async function loadUserProfile(
     user
@@ -1630,6 +2390,7 @@ async function loadUserProfile(
         return false;
 
     }
+
 
     try {
 
@@ -1648,6 +2409,7 @@ async function loadUserProfile(
                 )
                 .maybeSingle();
 
+
         if (
             error
         ) {
@@ -1657,13 +2419,15 @@ async function loadUserProfile(
                 error
             );
 
+
             showLoginError(
                 "Could not load your profile."
             );
 
-            return false;
 
+            return false;
         }
+
 
         if (
             !data
@@ -1673,9 +2437,10 @@ async function loadUserProfile(
                 "Your account does not have a LabChat profile."
             );
 
-            return false;
 
+            return false;
         }
+
 
         if (
             data.is_active !==
@@ -1686,30 +2451,44 @@ async function loadUserProfile(
                 "Your LabChat account is inactive."
             );
 
-            return false;
 
+            return false;
         }
+
 
         /*
-         * ADMIN
-         */
+/*
+ * ADMIN
+ */
 
-        if (
-            data.role ===
-            "admin"
-        ) {
+if (
+    data.role ===
+    "admin"
+) {
 
-            sessionStorage.setItem(
-                ADMIN_TAB_SESSION_KEY,
-                "true"
-            );
+    console.log(
+        "Admin login detected."
+    );
 
-            window.location.href =
-                "../admin/admin.html";
 
-            return true;
+    /*
+     * Remember that this browser tab
+     * has an active admin login.
+     */
 
-        }
+    sessionStorage.setItem(
+        ADMIN_TAB_SESSION_KEY,
+        "true"
+    );
+
+
+    window.location.href =
+        "../admin/admin.html";
+
+
+    return true;
+}
+
 
         /*
          * NORMAL USER
@@ -1724,15 +2503,18 @@ async function loadUserProfile(
                 "Your account has an invalid role."
             );
 
-            return false;
 
+            return false;
         }
+
 
         currentUser =
             user;
 
+
         currentProfile =
             data;
+
 
         if (
             currentUserElement
@@ -1743,15 +2525,29 @@ async function loadUserProfile(
 
         }
 
+
         closeLogin();
+
+
+        /*
+         * Switch from the public PDF screen
+         * to the authenticated chat screen.
+         */
 
         showChatScreen();
 
+
         enableChatControls();
+
 
         setStatus(
             "Loading..."
         );
+
+
+        /*
+         * Load chat data.
+         */
 
         await loadMessages();
 
@@ -1759,14 +2555,24 @@ async function loadUserProfile(
 
         startPresence();
 
-        messageInput?.focus();
+
+        if (
+            messageInput
+        ) {
+
+            messageInput.focus();
+
+        }
+
 
         console.log(
-            "Logged in:",
+            "LabChat user logged in:",
             data.username
         );
 
+
         return true;
+
 
     } catch (
         error
@@ -1777,9 +2583,11 @@ async function loadUserProfile(
             error
         );
 
+
         showLoginError(
             "Could not load your LabChat profile."
         );
+
 
         return false;
 
@@ -1788,44 +2596,76 @@ async function loadUserProfile(
 
 
 /* =========================================================
-   SCREEN MANAGEMENT
-   ========================================================= */
+   SHOW CHAT SCREEN
+========================================================= */
 
 function showChatScreen() {
 
-    pdfViewerScreen?.classList.add(
-        "hidden"
-    );
+    if (
+        pdfViewerScreen
+    ) {
 
-    chatScreen?.classList.remove(
-        "hidden"
-    );
+        pdfViewerScreen.classList.add(
+            "hidden"
+        );
+
+    }
+
+
+    if (
+        chatScreen
+    ) {
+
+        chatScreen.classList.remove(
+            "hidden"
+        );
+
+    }
 }
 
 
+/* =========================================================
+   SHOW PDF SCREEN
+========================================================= */
+
 function showPDFScreen() {
 
-    chatScreen?.classList.add(
-        "hidden"
-    );
+    if (
+        chatScreen
+    ) {
 
-    pdfViewerScreen?.classList.remove(
-        "hidden"
-    );
+        chatScreen.classList.add(
+            "hidden"
+        );
+
+    }
+
+
+    if (
+        pdfViewerScreen
+    ) {
+
+        pdfViewerScreen.classList.remove(
+            "hidden"
+        );
+
+    }
 }
 
 
 /* =========================================================
    GUEST STATE
-   ========================================================= */
+========================================================= */
 
 function showGuestState() {
 
     currentUser =
         null;
 
+
     currentProfile =
         null;
+
 
     if (
         currentUserElement
@@ -1836,9 +2676,16 @@ function showGuestState() {
 
     }
 
+
     disableChatControls();
 
+
+    /*
+     * Public PDF remains the main screen.
+     */
+
     showPDFScreen();
+
 
     setStatus(
         "Ready"
@@ -1847,36 +2694,50 @@ function showGuestState() {
 
 
 /* =========================================================
-   LOGIN UI
-   ========================================================= */
+   LOGIN ERROR
+========================================================= */
 
 function showLoginError(
     message
 ) {
 
     if (
-        loginError
+        !loginError
     ) {
 
-        loginError.textContent =
-            message;
+        return;
 
     }
+
+
+    loginError.textContent =
+        message;
 }
 
+
+/* =========================================================
+   CLEAR LOGIN ERROR
+========================================================= */
 
 function clearLoginError() {
 
     if (
-        loginError
+        !loginError
     ) {
 
-        loginError.textContent =
-            "";
+        return;
 
     }
+
+
+    loginError.textContent =
+        "";
 }
 
+
+/* =========================================================
+   LOGIN BUTTON STATE
+========================================================= */
 
 function setLoginLoading(
     loading
@@ -1890,8 +2751,10 @@ function setLoginLoading(
 
     }
 
+
     loginButton.disabled =
         loading;
+
 
     loginButton.textContent =
         loading
@@ -1900,16 +2763,31 @@ function setLoginLoading(
 }
 
 
+/* =========================================================
+   LOGIN ERROR MESSAGE
+========================================================= */
+
 function getLoginErrorMessage(
     error
 ) {
 
+    if (
+        !error
+    ) {
+
+        return "Login failed.";
+
+    }
+
+
     const message =
-        error?.message ||
+        error.message ||
         "";
+
 
     const lower =
         message.toLowerCase();
+
 
     if (
         lower.includes(
@@ -1918,8 +2796,8 @@ function getLoginErrorMessage(
     ) {
 
         return "Incorrect email or password.";
-
     }
+
 
     if (
         lower.includes(
@@ -1928,8 +2806,8 @@ function getLoginErrorMessage(
     ) {
 
         return "Your email has not been confirmed.";
-
     }
+
 
     return (
         message ||
@@ -1939,8 +2817,8 @@ function getLoginErrorMessage(
 
 
 /* =========================================================
-   CHAT CONTROLS
-   ========================================================= */
+   CHAT ENABLE
+========================================================= */
 
 function enableChatControls() {
 
@@ -1951,12 +2829,11 @@ function enableChatControls() {
         messageInput.disabled =
             false;
 
-        messageInput.placeholder =
-            isCodeMode
-                ? "Write your code here..."
-                : "Type a message...";
 
+        messageInput.placeholder =
+            "Type a message...";
     }
+
 
     if (
         sendButton
@@ -1964,8 +2841,8 @@ function enableChatControls() {
 
         sendButton.disabled =
             false;
-
     }
+
 
     if (
         codeButton
@@ -1973,10 +2850,13 @@ function enableChatControls() {
 
         codeButton.disabled =
             false;
-
     }
 }
 
+
+/* =========================================================
+   CHAT DISABLE
+========================================================= */
 
 function disableChatControls() {
 
@@ -1987,10 +2867,11 @@ function disableChatControls() {
         messageInput.disabled =
             true;
 
+
         messageInput.placeholder =
             "Login to send a message...";
-
     }
+
 
     if (
         sendButton
@@ -1998,8 +2879,8 @@ function disableChatControls() {
 
         sendButton.disabled =
             true;
-
     }
+
 
     if (
         codeButton
@@ -2007,47 +2888,13 @@ function disableChatControls() {
 
         codeButton.disabled =
             true;
-
     }
 }
 
 
 /* =========================================================
-   MESSAGE CONTROLS
-   ========================================================= */
-
-function setupMessageControls() {
-
-    messageForm?.addEventListener(
-        "submit",
-        handleMessageSubmit
-    );
-
-    messageInput?.addEventListener(
-        "keydown",
-        handleMessageKeydown
-    );
-
-    messageInput?.addEventListener(
-        "input",
-        autoResizeTextarea
-    );
-
-    codeButton?.addEventListener(
-        "click",
-        toggleCodeMode
-    );
-
-    leaveButton?.addEventListener(
-        "click",
-        leaveChat
-    );
-}
-
-
-/* =========================================================
    LOAD MESSAGES
-   ========================================================= */
+========================================================= */
 
 async function loadMessages() {
 
@@ -2059,14 +2906,13 @@ async function loadMessages() {
 
     }
 
+
     setStatus(
         "Loading..."
     );
 
-    try {
 
-        const now =
-            new Date().toISOString();
+    try {
 
         const {
             data,
@@ -2077,7 +2923,7 @@ async function loadMessages() {
                 .select("*")
                 .gt(
                     "expires_at",
-                    now
+                    new Date().toISOString()
                 )
                 .order(
                     "created_at",
@@ -2086,6 +2932,7 @@ async function loadMessages() {
                             true
                     }
                 );
+
 
         if (
             error
@@ -2096,22 +2943,24 @@ async function loadMessages() {
                 error
             );
 
+
             setStatus(
                 "Database error"
             );
 
-            return;
 
+            return;
         }
 
-        clearMessageTimers();
 
         messagesContainer.innerHTML =
             "";
 
+
         if (
             !data ||
-            data.length === 0
+            data.length ===
+            0
         ) {
 
             showEmptyState();
@@ -2124,11 +2973,14 @@ async function loadMessages() {
 
         }
 
+
         setStatus(
             "Online"
         );
 
+
         scrollToBottom();
+
 
     } catch (
         error
@@ -2138,6 +2990,7 @@ async function loadMessages() {
             "Unexpected message load error:",
             error
         );
+
 
         setStatus(
             "Database error"
@@ -2149,7 +3002,7 @@ async function loadMessages() {
 
 /* =========================================================
    REALTIME MESSAGES
-   ========================================================= */
+========================================================= */
 
 function subscribeToMessages() {
 
@@ -2161,10 +3014,11 @@ function subscribeToMessages() {
             realtimeChannel
         );
 
+
         realtimeChannel =
             null;
-
     }
+
 
     realtimeChannel =
         supabaseClient
@@ -2183,28 +3037,31 @@ function subscribeToMessages() {
                     table:
                         "messages"
                 },
-                payload => {
+                (payload) => {
 
                     console.log(
                         "New message:",
                         payload.new
                     );
 
+
                     addMessage(
                         payload.new
                     );
+
 
                     scrollToBottom();
 
                 }
             )
             .subscribe(
-                status => {
+                (status) => {
 
                     console.log(
                         "Realtime:",
                         status
                     );
+
 
                     if (
                         status ===
@@ -2217,6 +3074,7 @@ function subscribeToMessages() {
 
                     }
 
+
                     else if (
                         status ===
                         "CHANNEL_ERROR"
@@ -2227,6 +3085,7 @@ function subscribeToMessages() {
                         );
 
                     }
+
 
                     else if (
                         status ===
@@ -2246,7 +3105,7 @@ function subscribeToMessages() {
 
 /* =========================================================
    PRESENCE
-   ========================================================= */
+========================================================= */
 
 function startPresence() {
 
@@ -2258,6 +3117,7 @@ function startPresence() {
 
     }
 
+
     if (
         presenceChannel
     ) {
@@ -2266,10 +3126,11 @@ function startPresence() {
             presenceChannel
         );
 
+
         presenceChannel =
             null;
-
     }
+
 
     presenceChannel =
         supabaseClient.channel(
@@ -2286,42 +3147,44 @@ function startPresence() {
             }
         );
 
-    presenceChannel
-        .on(
-            "presence",
-            {
-                event:
-                    "sync"
-            },
-            updateOnlineCount
-        )
-        .on(
-            "presence",
-            {
-                event:
-                    "join"
-            },
-            updateOnlineCount
-        )
-        .on(
-            "presence",
-            {
-                event:
-                    "leave"
-            },
-            updateOnlineCount
-        )
-        .subscribe(
-            async status => {
 
-                if (
-                    status !==
-                    "SUBSCRIBED"
-                ) {
+    presenceChannel.on(
+        "presence",
+        {
+            event:
+                "sync"
+        },
+        updateOnlineCount
+    );
 
-                    return;
 
-                }
+    presenceChannel.on(
+        "presence",
+        {
+            event:
+                "join"
+        },
+        updateOnlineCount
+    );
+
+
+    presenceChannel.on(
+        "presence",
+        {
+            event:
+                "leave"
+        },
+        updateOnlineCount
+    );
+
+
+    presenceChannel.subscribe(
+        async (status) => {
+
+            if (
+                status ===
+                "SUBSCRIBED"
+            ) {
 
                 try {
 
@@ -2335,7 +3198,9 @@ function startPresence() {
                         }
                     );
 
+
                     updateOnlineCount();
+
 
                 } catch (
                     error
@@ -2349,13 +3214,15 @@ function startPresence() {
                 }
 
             }
-        );
+
+        }
+    );
 }
 
 
 /* =========================================================
    ONLINE COUNT
-   ========================================================= */
+========================================================= */
 
 function updateOnlineCount() {
 
@@ -2368,19 +3235,22 @@ function updateOnlineCount() {
 
     }
 
+
     const state =
         presenceChannel.presenceState();
+
 
     const uniqueUsers =
         new Set();
 
+
     Object.values(
         state
     ).forEach(
-        entries => {
+        (entries) => {
 
             entries.forEach(
-                entry => {
+                (entry) => {
 
                     if (
                         entry.username
@@ -2398,8 +3268,10 @@ function updateOnlineCount() {
         }
     );
 
+
     const count =
         uniqueUsers.size;
+
 
     onlineCount.textContent =
         `${count} ${
@@ -2412,7 +3284,7 @@ function updateOnlineCount() {
 
 /* =========================================================
    SEND MESSAGE
-   ========================================================= */
+========================================================= */
 
 async function handleMessageSubmit(
     event
@@ -2420,35 +3292,36 @@ async function handleMessageSubmit(
 
     event.preventDefault();
 
+
     if (
-        !currentUser ||
-        !currentProfile
+        !currentUser
     ) {
 
         openLogin();
 
         return;
-
     }
+
 
     if (
         !messageInput
     ) {
 
         return;
-
     }
+
 
     const text =
         messageInput.value;
+
 
     if (
         !text.trim()
     ) {
 
         return;
-
     }
+
 
     if (
         sendButton
@@ -2456,8 +3329,8 @@ async function handleMessageSubmit(
 
         sendButton.disabled =
             true;
-
     }
+
 
     try {
 
@@ -2479,6 +3352,7 @@ async function handleMessageSubmit(
                     }
                 );
 
+
         if (
             error
         ) {
@@ -2488,20 +3362,25 @@ async function handleMessageSubmit(
                 error
             );
 
+
             alert(
                 "Message could not be sent."
             );
 
-            return;
 
+            return;
         }
+
 
         messageInput.value =
             "";
 
+
         autoResizeTextarea();
 
+
         messageInput.focus();
+
 
     } catch (
         error
@@ -2512,9 +3391,11 @@ async function handleMessageSubmit(
             error
         );
 
+
         alert(
             "Message could not be sent."
         );
+
 
     } finally {
 
@@ -2524,7 +3405,6 @@ async function handleMessageSubmit(
 
             sendButton.disabled =
                 false;
-
         }
 
     }
@@ -2533,48 +3413,66 @@ async function handleMessageSubmit(
 
 /* =========================================================
    MESSAGE KEYBOARD
-   ========================================================= */
+========================================================= */
 
 function handleMessageKeydown(
     event
 ) {
 
     /*
-     * NORMAL MODE
+     * Normal mode:
      *
      * Enter = send
      * Shift + Enter = newline
      */
 
     if (
-        event.key === "Enter" &&
+        event.key ===
+        "Enter" &&
         !event.shiftKey &&
         !isCodeMode
     ) {
 
         event.preventDefault();
 
-        messageForm?.requestSubmit();
+
+        if (
+            messageForm
+        ) {
+
+            messageForm.requestSubmit();
+
+        }
+
 
         return;
     }
 
+
     /*
-     * CODE MODE
+     * Code mode:
      *
      * Enter = newline
      * Ctrl + Enter = send
      */
 
     if (
-        event.key === "Enter" &&
+        event.key ===
+        "Enter" &&
         event.ctrlKey &&
         isCodeMode
     ) {
 
         event.preventDefault();
 
-        messageForm?.requestSubmit();
+
+        if (
+            messageForm
+        ) {
+
+            messageForm.requestSubmit();
+
+        }
 
     }
 }
@@ -2582,7 +3480,7 @@ function handleMessageKeydown(
 
 /* =========================================================
    CODE MODE
-   ========================================================= */
+========================================================= */
 
 function toggleCodeMode() {
 
@@ -2593,30 +3491,85 @@ function toggleCodeMode() {
         openLogin();
 
         return;
-
     }
+
 
     isCodeMode =
         !isCodeMode;
 
-    codeButton?.classList.toggle(
-        "active",
-        isCodeMode
-    );
 
-    codeIndicator?.classList.toggle(
-        "hidden",
-        !isCodeMode
-    );
+    if (
+        isCodeMode
+    ) {
+
+        if (
+            codeButton
+        ) {
+
+            codeButton.classList.add(
+                "active"
+            );
+
+        }
+
+
+        if (
+            codeIndicator
+        ) {
+
+            codeIndicator.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        if (
+            messageInput
+        ) {
+
+            messageInput.placeholder =
+                "Write your code here...";
+        }
+
+    } else {
+
+        if (
+            codeButton
+        ) {
+
+            codeButton.classList.remove(
+                "active"
+            );
+
+        }
+
+
+        if (
+            codeIndicator
+        ) {
+
+            codeIndicator.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        if (
+            messageInput
+        ) {
+
+            messageInput.placeholder =
+                "Type a message...";
+        }
+
+    }
+
 
     if (
         messageInput
     ) {
-
-        messageInput.placeholder =
-            isCodeMode
-                ? "Write your code here..."
-                : "Type a message...";
 
         messageInput.focus();
 
@@ -2626,7 +3579,7 @@ function toggleCodeMode() {
 
 /* =========================================================
    DISPLAY MESSAGE
-   ========================================================= */
+========================================================= */
 
 function addMessage(
     message
@@ -2638,28 +3591,26 @@ function addMessage(
     ) {
 
         return;
-
     }
 
-    /*
-     * Ignore expired messages.
-     */
 
     const expires =
         new Date(
             message.expires_at
         );
 
+
     if (
         Number.isNaN(
             expires.getTime()
         ) ||
-        expires <= new Date()
+        expires <=
+        new Date()
     ) {
 
         return;
-
     }
+
 
     /*
      * Prevent duplicates.
@@ -2672,21 +3623,25 @@ function addMessage(
     ) {
 
         return;
-
     }
 
+
     removeEmptyState();
+
 
     const messageElement =
         document.createElement(
             "article"
         );
 
+
     messageElement.className =
         "message";
 
+
     messageElement.dataset.messageId =
         message.id;
+
 
     if (
         currentProfile &&
@@ -2700,232 +3655,217 @@ function addMessage(
 
     }
 
+
+    /*
+     * CODE MESSAGE
+     */
+
     if (
         message.is_code
     ) {
 
-        renderCodeMessage(
-            messageElement,
-            message
+        messageElement.classList.add(
+            "code-message"
         );
 
-    } else {
 
-        renderNormalMessage(
-            messageElement,
-            message
+        const codeHeader =
+            document.createElement(
+                "div"
+            );
+
+
+        codeHeader.className =
+            "code-header";
+
+
+        const codeAuthor =
+            document.createElement(
+                "span"
+            );
+
+
+        codeAuthor.textContent =
+            `${message.username} • ${formatTime(
+                message.created_at
+            )}`;
+
+
+        const copyButton =
+            createCopyButton(
+                message.message,
+                "Copy Code"
+            );
+
+
+        codeHeader.appendChild(
+            codeAuthor
+        );
+
+
+        codeHeader.appendChild(
+            copyButton
+        );
+
+
+        const codeContent =
+            document.createElement(
+                "pre"
+            );
+
+
+        codeContent.className =
+            "code-content";
+
+
+        codeContent.textContent =
+            message.message;
+
+
+        messageElement.appendChild(
+            codeHeader
+        );
+
+
+        messageElement.appendChild(
+            codeContent
         );
 
     }
+
+
+    /*
+     * NORMAL MESSAGE
+     */
+
+    else {
+
+        const header =
+            document.createElement(
+                "div"
+            );
+
+
+        header.className =
+            "message-header";
+
+
+        const username =
+            document.createElement(
+                "span"
+            );
+
+
+        username.className =
+            "message-user";
+
+
+        username.textContent =
+            message.username;
+
+
+        const time =
+            document.createElement(
+                "span"
+            );
+
+
+        time.className =
+            "message-time";
+
+
+        time.textContent =
+            formatTime(
+                message.created_at
+            );
+
+
+        header.appendChild(
+            username
+        );
+
+
+        header.appendChild(
+            time
+        );
+
+
+        const text =
+            document.createElement(
+                "div"
+            );
+
+
+        text.className =
+            "message-text";
+
+
+        text.textContent =
+            message.message;
+
+
+        linkify(
+            text
+        );
+
+
+        const actions =
+            document.createElement(
+                "div"
+            );
+
+
+        actions.className =
+            "message-actions";
+
+
+        const copyButton =
+            createCopyButton(
+                message.message,
+                "Copy"
+            );
+
+
+        actions.appendChild(
+            copyButton
+        );
+
+
+        messageElement.appendChild(
+            header
+        );
+
+
+        messageElement.appendChild(
+            text
+        );
+
+
+        messageElement.appendChild(
+            actions
+        );
+
+    }
+
 
     messagesContainer.appendChild(
         messageElement
     );
 
-    scheduleMessageRemoval(
-        messageElement,
-        message.id,
-        expires
-    );
-}
 
-
-/* =========================================================
-   NORMAL MESSAGE RENDER
-   ========================================================= */
-
-function renderNormalMessage(
-    messageElement,
-    message
-) {
-
-    const header =
-        document.createElement(
-            "div"
-        );
-
-    header.className =
-        "message-header";
-
-    const username =
-        document.createElement(
-            "span"
-        );
-
-    username.className =
-        "message-user";
-
-    username.textContent =
-        message.username;
-
-    const time =
-        document.createElement(
-            "span"
-        );
-
-    time.className =
-        "message-time";
-
-    time.textContent =
-        formatTime(
-            message.created_at
-        );
-
-    header.appendChild(
-        username
-    );
-
-    header.appendChild(
-        time
-    );
-
-    const text =
-        document.createElement(
-            "div"
-        );
-
-    text.className =
-        "message-text";
-
-    text.textContent =
-        message.message;
-
-    linkify(
-        text
-    );
-
-    const actions =
-        document.createElement(
-            "div"
-        );
-
-    actions.className =
-        "message-actions";
-
-    actions.appendChild(
-        createCopyButton(
-            message.message,
-            "Copy"
-        )
-    );
-
-    messageElement.appendChild(
-        header
-    );
-
-    messageElement.appendChild(
-        text
-    );
-
-    messageElement.appendChild(
-        actions
-    );
-}
-
-
-/* =========================================================
-   CODE MESSAGE RENDER
-   ========================================================= */
-
-function renderCodeMessage(
-    messageElement,
-    message
-) {
-
-    messageElement.classList.add(
-        "code-message"
-    );
-
-    const header =
-        document.createElement(
-            "div"
-        );
-
-    header.className =
-        "code-header";
-
-    const author =
-        document.createElement(
-            "span"
-        );
-
-    author.textContent =
-        `${message.username} • ${formatTime(
-            message.created_at
-        )}`;
-
-    header.appendChild(
-        author
-    );
-
-    header.appendChild(
-        createCopyButton(
-            message.message,
-            "Copy Code"
-        )
-    );
-
-    const codeContent =
-        document.createElement(
-            "pre"
-        );
-
-    codeContent.className =
-        "code-content";
-
-    codeContent.textContent =
-        message.message;
-
-    messageElement.appendChild(
-        header
-    );
-
-    messageElement.appendChild(
-        codeContent
-    );
-}
-
-
-/* =========================================================
-   MESSAGE EXPIRY
-   ========================================================= */
-
-function scheduleMessageRemoval(
-    messageElement,
-    messageId,
-    expires
-) {
+    /*
+     * Automatic 5-minute removal.
+     */
 
     const remaining =
         expires.getTime() -
         Date.now();
 
-    if (
-        remaining <= 0
-    ) {
-
-        messageElement.remove();
-
-        return;
-
-    }
-
-    const existingTimer =
-        messageTimers.get(
-            messageId
-        );
 
     if (
-        existingTimer
+        remaining > 0
     ) {
 
-        clearTimeout(
-            existingTimer
-        );
-
-    }
-
-    const timer =
         setTimeout(
             () => {
 
@@ -2937,13 +3877,12 @@ function scheduleMessageRemoval(
 
                 }
 
-                messageTimers.delete(
-                    messageId
-                );
 
                 if (
-                    messagesContainer &&
-                    messagesContainer.children.length === 0
+                    messagesContainer
+                        .children
+                        .length ===
+                    0
                 ) {
 
                     showEmptyState();
@@ -2954,32 +3893,13 @@ function scheduleMessageRemoval(
             remaining
         );
 
-    messageTimers.set(
-        messageId,
-        timer
-    );
-}
-
-
-function clearMessageTimers() {
-
-    messageTimers.forEach(
-        timer => {
-
-            clearTimeout(
-                timer
-            );
-
-        }
-    );
-
-    messageTimers.clear();
+    }
 }
 
 
 /* =========================================================
    COPY BUTTON
-   ========================================================= */
+========================================================= */
 
 function createCopyButton(
     text,
@@ -2991,14 +3911,18 @@ function createCopyButton(
             "button"
         );
 
+
     button.type =
         "button";
+
 
     button.className =
         "copy-button";
 
+
     button.textContent =
         label;
+
 
     button.addEventListener(
         "click",
@@ -3006,28 +3930,26 @@ function createCopyButton(
 
             try {
 
-                await navigator.clipboard.writeText(
-                    text
-                );
+                await navigator.clipboard
+                    .writeText(
+                        text
+                    );
+
 
                 button.textContent =
                     "Copied!";
 
+
                 setTimeout(
                     () => {
 
-                        if (
-                            button.isConnected
-                        ) {
-
-                            button.textContent =
-                                label;
-
-                        }
+                        button.textContent =
+                            label;
 
                     },
                     1200
                 );
+
 
             } catch (
                 error
@@ -3038,6 +3960,7 @@ function createCopyButton(
                     error
                 );
 
+
                 button.textContent =
                     "Copy failed";
 
@@ -3046,13 +3969,14 @@ function createCopyButton(
         }
     );
 
+
     return button;
 }
 
 
 /* =========================================================
    LINKIFY
-   ========================================================= */
+========================================================= */
 
 function linkify(
     element
@@ -3063,25 +3987,29 @@ function linkify(
     ) {
 
         return;
-
     }
+
 
     const text =
         element.textContent;
 
+
     const urlRegex =
         /(https?:\/\/[^\s]+)/g;
+
 
     const parts =
         text.split(
             urlRegex
         );
 
+
     element.textContent =
         "";
 
+
     parts.forEach(
-        part => {
+        (part) => {
 
             if (
                 /^https?:\/\//i.test(
@@ -3094,17 +4022,22 @@ function linkify(
                         "a"
                     );
 
+
                 link.href =
                     part;
+
 
                 link.textContent =
                     part;
 
+
                 link.target =
                     "_blank";
 
+
                 link.rel =
                     "noopener noreferrer";
+
 
                 element.appendChild(
                     link
@@ -3127,7 +4060,7 @@ function linkify(
 
 /* =========================================================
    TIME
-   ========================================================= */
+========================================================= */
 
 function formatTime(
     timestamp
@@ -3150,7 +4083,7 @@ function formatTime(
 
 /* =========================================================
    EMPTY STATE
-   ========================================================= */
+========================================================= */
 
 function showEmptyState() {
 
@@ -3159,8 +4092,8 @@ function showEmptyState() {
     ) {
 
         return;
-
     }
+
 
     if (
         messagesContainer.querySelector(
@@ -3169,37 +4102,44 @@ function showEmptyState() {
     ) {
 
         return;
-
     }
+
 
     const empty =
         document.createElement(
             "div"
         );
 
+
     empty.className =
         "empty-state";
+
 
     const title =
         document.createElement(
             "strong"
         );
 
+
     title.textContent =
         "No messages yet";
+
 
     const subtitle =
         document.createTextNode(
             "Start the conversation."
         );
 
+
     empty.appendChild(
         title
     );
 
+
     empty.appendChild(
         subtitle
     );
+
 
     messagesContainer.appendChild(
         empty
@@ -3207,38 +4147,60 @@ function showEmptyState() {
 }
 
 
+/* =========================================================
+   REMOVE EMPTY STATE
+========================================================= */
+
 function removeEmptyState() {
 
-    messagesContainer
-        ?.querySelector(
-            ".empty-state"
-        )
-        ?.remove();
-}
-
-
-/* =========================================================
-   STATUS
-   ========================================================= */
-
-function setStatus(
-    status
-) {
-
     if (
-        connectionStatus
+        !messagesContainer
     ) {
 
-        connectionStatus.textContent =
-            status;
+        return;
+    }
+
+
+    const empty =
+        messagesContainer.querySelector(
+            ".empty-state"
+        );
+
+
+    if (
+        empty
+    ) {
+
+        empty.remove();
 
     }
 }
 
 
 /* =========================================================
+   STATUS
+========================================================= */
+
+function setStatus(
+    status
+) {
+
+    if (
+        !connectionStatus
+    ) {
+
+        return;
+    }
+
+
+    connectionStatus.textContent =
+        status;
+}
+
+
+/* =========================================================
    TEXTAREA AUTO RESIZE
-   ========================================================= */
+========================================================= */
 
 function autoResizeTextarea() {
 
@@ -3247,11 +4209,12 @@ function autoResizeTextarea() {
     ) {
 
         return;
-
     }
+
 
     messageInput.style.height =
         "auto";
+
 
     messageInput.style.height =
         Math.min(
@@ -3263,125 +4226,26 @@ function autoResizeTextarea() {
 
 /* =========================================================
    SCROLL CHAT
-   ========================================================= */
+========================================================= */
 
 function scrollToBottom() {
 
     if (
-        messagesContainer
+        !messagesContainer
     ) {
 
-        messagesContainer.scrollTop =
-            messagesContainer.scrollHeight;
-
+        return;
     }
-}
 
 
-/* =========================================================
-   KEYBOARD SHORTCUTS
-   ========================================================= */
-
-function setupKeyboardShortcuts() {
-
-    document.addEventListener(
-        "keydown",
-        event => {
-
-            /*
-             * Ctrl + Shift + L
-             * Open login.
-             */
-
-            if (
-                event.ctrlKey &&
-                event.shiftKey &&
-                event.key.toLowerCase() === "l"
-            ) {
-
-                event.preventDefault();
-
-                openLogin();
-
-                return;
-
-            }
-
-            /*
-             * Escape closes login.
-             */
-
-            if (
-                event.key === "Escape" &&
-                loginOverlay &&
-                !loginOverlay.classList.contains(
-                    "hidden"
-                )
-            ) {
-
-                closeLogin();
-
-                return;
-
-            }
-
-            /*
-             * PDF navigation.
-             */
-
-            if (
-                pdfViewerScreen &&
-                !pdfViewerScreen.classList.contains(
-                    "hidden"
-                ) &&
-                !loginOverlayIsOpen()
-            ) {
-
-                if (
-                    event.key === "ArrowLeft"
-                ) {
-
-                    goToPDFPage(
-                        pdfCurrentPage - 1
-                    );
-
-                }
-
-                if (
-                    event.key === "ArrowRight"
-                ) {
-
-                    goToPDFPage(
-                        pdfCurrentPage + 1
-                    );
-
-                }
-
-            }
-
-        }
-    );
-}
-
-
-/* =========================================================
-   LOGIN OVERLAY STATE
-   ========================================================= */
-
-function loginOverlayIsOpen() {
-
-    return Boolean(
-        loginOverlay &&
-        !loginOverlay.classList.contains(
-            "hidden"
-        )
-    );
+    messagesContainer.scrollTop =
+        messagesContainer.scrollHeight;
 }
 
 
 /* =========================================================
    SIGN OUT
-   ========================================================= */
+========================================================= */
 
 async function leaveChat() {
 
@@ -3389,15 +4253,76 @@ async function leaveChat() {
         "Signing out..."
     );
 
-    await cleanupRealtime();
 
     sessionStorage.removeItem(
         ADMIN_TAB_SESSION_KEY
     );
 
+
     try {
 
-        await supabaseClient.auth.signOut();
+        /*
+         * Stop presence.
+         */
+
+        if (
+            presenceChannel
+        ) {
+
+            try {
+
+                await presenceChannel
+                    .untrack();
+
+            } catch (
+                error
+            ) {
+
+                console.error(
+                    "Presence untrack error:",
+                    error
+                );
+
+            }
+
+
+            await supabaseClient
+                .removeChannel(
+                    presenceChannel
+                );
+
+
+            presenceChannel =
+                null;
+        }
+
+
+        /*
+         * Stop realtime.
+         */
+
+        if (
+            realtimeChannel
+        ) {
+
+            await supabaseClient
+                .removeChannel(
+                    realtimeChannel
+                );
+
+
+            realtimeChannel =
+                null;
+        }
+
+
+        /*
+         * Sign out.
+         */
+
+        await supabaseClient.auth
+            .signOut();
+
 
     } catch (
         error
@@ -3413,91 +4338,8 @@ async function leaveChat() {
 
 
 /* =========================================================
-   REALTIME CLEANUP
-   ========================================================= */
-
-async function cleanupRealtime() {
-
-    /*
-     * Presence.
-     */
-
-    if (
-        presenceChannel
-    ) {
-
-        try {
-
-            await presenceChannel.untrack();
-
-        } catch (
-            error
-        ) {
-
-            console.warn(
-                "Presence untrack failed:",
-                error
-            );
-
-        }
-
-        try {
-
-            await supabaseClient.removeChannel(
-                presenceChannel
-            );
-
-        } catch (
-            error
-        ) {
-
-            console.warn(
-                "Presence channel cleanup failed:",
-                error
-            );
-
-        }
-
-        presenceChannel =
-            null;
-
-    }
-
-    /*
-     * Messages.
-     */
-
-    if (
-        realtimeChannel
-    ) {
-
-        try {
-
-            await supabaseClient.removeChannel(
-                realtimeChannel
-            );
-
-        } catch (
-            error
-        ) {
-
-            console.warn(
-                "Realtime cleanup failed:",
-                error
-            );
-
-        }
-
-        realtimeChannel =
-            null;
-
-    }
-}
-
-
-/* =========================================================
    RESET AFTER SIGN OUT
-   ========================================================= */
+========================================================= */
 
 async function resetLabChat() {
 
@@ -3505,22 +4347,23 @@ async function resetLabChat() {
         "Resetting LabChat..."
     );
 
-    await cleanupRealtime();
-
-    clearMessageTimers();
 
     sessionStorage.removeItem(
         ADMIN_TAB_SESSION_KEY
     );
 
+
     currentUser =
         null;
+
 
     currentProfile =
         null;
 
+
     isCodeMode =
         false;
+
 
     if (
         currentUserElement
@@ -3531,6 +4374,7 @@ async function resetLabChat() {
 
     }
 
+
     if (
         messagesContainer
     ) {
@@ -3540,13 +4384,28 @@ async function resetLabChat() {
 
     }
 
-    codeButton?.classList.remove(
-        "active"
-    );
 
-    codeIndicator?.classList.add(
-        "hidden"
-    );
+    if (
+        codeButton
+    ) {
+
+        codeButton.classList.remove(
+            "active"
+        );
+
+    }
+
+
+    if (
+        codeIndicator
+    ) {
+
+        codeIndicator.classList.add(
+            "hidden"
+        );
+
+    }
+
 
     if (
         messageInput
@@ -3555,13 +4414,12 @@ async function resetLabChat() {
         messageInput.value =
             "";
 
+
         messageInput.placeholder =
             "Login to send a message...";
 
-        messageInput.style.height =
-            "auto";
-
     }
+
 
     if (
         onlineCount
@@ -3572,18 +4430,32 @@ async function resetLabChat() {
 
     }
 
+
     disableChatControls();
 
-    showPDFScreen();
-
-    updatePDFPageNumber();
 
     setStatus(
         "Ready"
     );
 
+
     /*
-     * Show login popup after logout.
+     * Return to the public PDF.
+     */
+
+    showPDFScreen();
+
+
+    /*
+     * Make sure the PDF is still positioned
+     * at the current document page.
+     */
+
+    updatePDFPageNumber();
+
+
+    /*
+     * Open login after signing out.
      */
 
     openLogin();
@@ -3592,7 +4464,7 @@ async function resetLabChat() {
 
 /* =========================================================
    DEBOUNCE
-   ========================================================= */
+========================================================= */
 
 function debounce(
     callback,
@@ -3602,6 +4474,7 @@ function debounce(
     let timeoutId =
         null;
 
+
     return (
         ...args
     ) => {
@@ -3609,6 +4482,7 @@ function debounce(
         clearTimeout(
             timeoutId
         );
+
 
         timeoutId =
             setTimeout(
@@ -3628,25 +4502,11 @@ function debounce(
 
 /* =========================================================
    PAGE CLEANUP
-   ========================================================= */
+========================================================= */
 
 window.addEventListener(
     "beforeunload",
     () => {
-
-        /*
-         * Clear local message timers.
-         */
-
-        clearMessageTimers();
-
-        /*
-         * Presence cleanup.
-         *
-         * Supabase will also remove the
-         * presence automatically when the
-         * connection closes.
-         */
 
         if (
             presenceChannel
@@ -3660,7 +4520,7 @@ window.addEventListener(
                 error
             ) {
 
-                console.warn(
+                console.error(
                     "Presence cleanup error:",
                     error
                 );
