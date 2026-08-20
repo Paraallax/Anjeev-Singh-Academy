@@ -27,6 +27,32 @@ const supabaseClient =
 
 
 /* =========================================================
+   PUBLIC PDF CONFIG
+========================================================= */
+
+/*
+ * GitHub repository:
+ *
+ * Paraallax/labchat
+ *
+ * Exact commit:
+ *
+ * c985342d44c142b7a1c581fb632e1e8bb2a3f75a
+ *
+ * PDF:
+ *
+ * XI-AI-UNIT-3-Python-Programming.pdf
+ */
+
+const PDF_URL =
+    "https://raw.githubusercontent.com/Paraallax/labchat/c985342d44c142b7a1c581fb632e1e8bb2a3f75a/XI-AI-UNIT-3-Python-Programming.pdf";
+
+
+const PDF_TITLE =
+    "XI AI Unit 3 - Python Programming";
+
+
+/* =========================================================
    STATE
 ========================================================= */
 
@@ -45,92 +71,237 @@ let userSessionId =
 
 
 /* =========================================================
+   PDF STATE
+========================================================= */
+
+let pdfjsLib = null;
+
+let pdfDocument = null;
+
+let pdfCurrentPage = 1;
+
+let pdfScale = 1;
+
+let pdfRendering = false;
+
+let pdfPendingPage = null;
+
+let pdfFitScale = 1;
+
+
+/* =========================================================
    DOM ELEMENTS
 ========================================================= */
 
 
-/* ---------- Login ---------- */
+/* ---------------------------------------------------------
+   LOGIN
+--------------------------------------------------------- */
 
 const loginOverlay =
-    document.getElementById("loginOverlay");
+    document.getElementById(
+        "loginOverlay"
+    );
+
 
 const loginModal =
-    document.getElementById("loginModal");
+    document.getElementById(
+        "loginModal"
+    );
+
 
 const loginForm =
-    document.getElementById("loginForm");
+    document.getElementById(
+        "loginForm"
+    );
+
 
 const loginIdentifier =
-    document.getElementById("loginIdentifier");
+    document.getElementById(
+        "loginIdentifier"
+    );
+
 
 const loginPassword =
-    document.getElementById("loginPassword");
+    document.getElementById(
+        "loginPassword"
+    );
+
 
 const loginButton =
-    document.getElementById("loginButton");
+    document.getElementById(
+        "loginButton"
+    );
+
 
 const loginError =
-    document.getElementById("loginError");
+    document.getElementById(
+        "loginError"
+    );
+
 
 const closeLoginButton =
-    document.getElementById("closeLoginButton");
-
-const openLoginButton =
-    document.getElementById("openLoginButton");
-
-const loginNotice =
-    document.getElementById("loginNotice");
+    document.getElementById(
+        "closeLoginButton"
+    );
 
 
-/* ---------- Chat ---------- */
+/* ---------------------------------------------------------
+   CHAT
+--------------------------------------------------------- */
 
 const chatScreen =
-    document.getElementById("chatScreen");
+    document.getElementById(
+        "chatScreen"
+    );
+
 
 const currentUserElement =
-    document.getElementById("currentUser");
+    document.getElementById(
+        "currentUser"
+    );
+
 
 const connectionStatus =
-    document.getElementById("connectionStatus");
+    document.getElementById(
+        "connectionStatus"
+    );
+
 
 const onlineCount =
-    document.getElementById("onlineCount");
+    document.getElementById(
+        "onlineCount"
+    );
+
 
 const messagesContainer =
-    document.getElementById("messages");
+    document.getElementById(
+        "messages"
+    );
+
 
 const messageForm =
-    document.getElementById("messageForm");
+    document.getElementById(
+        "messageForm"
+    );
+
 
 const messageInput =
-    document.getElementById("messageInput");
+    document.getElementById(
+        "messageInput"
+    );
+
 
 const sendButton =
-    document.getElementById("sendButton");
+    document.getElementById(
+        "sendButton"
+    );
+
 
 const codeButton =
-    document.getElementById("codeButton");
+    document.getElementById(
+        "codeButton"
+    );
+
 
 const codeIndicator =
-    document.getElementById("codeIndicator");
+    document.getElementById(
+        "codeIndicator"
+    );
+
 
 const leaveButton =
-    document.getElementById("leaveButton");
+    document.getElementById(
+        "leaveButton"
+    );
 
 
-/* ---------- PDF ---------- */
+/* ---------------------------------------------------------
+   PDF VIEWER
+--------------------------------------------------------- */
 
-const pdfSection =
-    document.getElementById("pdfSection");
+const pdfViewerScreen =
+    document.getElementById(
+        "pdfViewerScreen"
+    );
 
-const pdfTitle =
-    document.getElementById("pdfTitle");
 
-const pdfStatus =
-    document.getElementById("pdfStatus");
+const pdfPreviousButton =
+    document.getElementById(
+        "pdfPreviousButton"
+    );
 
-const pdfButton =
-    document.getElementById("pdfButton");
+
+const pdfPageNumber =
+    document.getElementById(
+        "pdfPageNumber"
+    );
+
+
+const pdfNextButton =
+    document.getElementById(
+        "pdfNextButton"
+    );
+
+
+const pdfDocumentTitle =
+    document.getElementById(
+        "pdfDocumentTitle"
+    );
+
+
+const pdfZoomOutButton =
+    document.getElementById(
+        "pdfZoomOutButton"
+    );
+
+
+const pdfZoomValue =
+    document.getElementById(
+        "pdfZoomValue"
+    );
+
+
+const pdfZoomInButton =
+    document.getElementById(
+        "pdfZoomInButton"
+    );
+
+
+const pdfFitButton =
+    document.getElementById(
+        "pdfFitButton"
+    );
+
+
+const pdfViewport =
+    document.getElementById(
+        "pdfViewport"
+    );
+
+
+const pdfPages =
+    document.getElementById(
+        "pdfPages"
+    );
+
+
+const pdfLoading =
+    document.getElementById(
+        "pdfLoading"
+    );
+
+
+const pdfError =
+    document.getElementById(
+        "pdfError"
+    );
+
+
+const pdfErrorMessage =
+    document.getElementById(
+        "pdfErrorMessage"
+    );
 
 
 /* =========================================================
@@ -156,7 +327,7 @@ async function initializeLabChat() {
 
 
     /*
-     * Set up UI controls first.
+     * Set up UI controls.
      */
 
     setupLoginControls();
@@ -165,19 +336,20 @@ async function initializeLabChat() {
 
     setupKeyboardShortcuts();
 
+    setupPDFControls();
+
     disableChatControls();
 
 
     /*
      * IMPORTANT
      *
-     * PDF is PUBLIC.
+     * The PDF is PUBLIC.
      *
-     * Therefore load it BEFORE checking
-     * whether the user is logged in.
+     * It must load before authentication.
      */
 
-    await loadActivePDF();
+    await loadPublicPDF();
 
 
     /*
@@ -199,9 +371,8 @@ async function initializeLabChat() {
 
 function setupLoginControls() {
 
-
     /*
-     * Login form
+     * Login form.
      */
 
     if (loginForm) {
@@ -215,7 +386,7 @@ function setupLoginControls() {
 
 
     /*
-     * Close button
+     * Close button.
      */
 
     if (closeLoginButton) {
@@ -223,20 +394,6 @@ function setupLoginControls() {
         closeLoginButton.addEventListener(
             "click",
             closeLogin
-        );
-
-    }
-
-
-    /*
-     * Open login button
-     */
-
-    if (openLoginButton) {
-
-        openLoginButton.addEventListener(
-            "click",
-            openLogin
         );
 
     }
@@ -275,11 +432,6 @@ function setupLoginControls() {
 
 function setupMessageControls() {
 
-
-    /*
-     * Message form
-     */
-
     if (messageForm) {
 
         messageForm.addEventListener(
@@ -289,10 +441,6 @@ function setupMessageControls() {
 
     }
 
-
-    /*
-     * Message keyboard handling
-     */
 
     if (messageInput) {
 
@@ -310,10 +458,6 @@ function setupMessageControls() {
     }
 
 
-    /*
-     * Code mode
-     */
-
     if (codeButton) {
 
         codeButton.addEventListener(
@@ -323,10 +467,6 @@ function setupMessageControls() {
 
     }
 
-
-    /*
-     * Sign out
-     */
 
     if (leaveButton) {
 
@@ -350,11 +490,10 @@ function setupKeyboardShortcuts() {
         "keydown",
         (event) => {
 
-
             /*
              * Ctrl + Shift + L
              *
-             * Open login
+             * Opens login popup.
              */
 
             if (
@@ -374,7 +513,7 @@ function setupKeyboardShortcuts() {
             /*
              * Escape
              *
-             * Close login
+             * Close login popup.
              */
 
             if (
@@ -499,8 +638,8 @@ async function handleLogin(event) {
 
 
     /*
-     * Current architecture uses
-     * Supabase Auth email/password.
+     * Supabase Auth requires
+     * an email address.
      */
 
     if (
@@ -544,11 +683,13 @@ async function handleLogin(event) {
                 error
             );
 
+
             showLoginError(
                 getLoginErrorMessage(
                     error
                 )
             );
+
 
             setLoginLoading(
                 false
@@ -566,6 +707,7 @@ async function handleLogin(event) {
             showLoginError(
                 "Login failed. Please try again."
             );
+
 
             setLoginLoading(
                 false
@@ -593,7 +735,8 @@ async function handleLogin(event) {
         }
 
 
-        loginPassword.value = "";
+        loginPassword.value =
+            "";
 
 
         setLoginLoading(
@@ -608,9 +751,11 @@ async function handleLogin(event) {
             error
         );
 
+
         showLoginError(
             "An unexpected error occurred."
         );
+
 
         setLoginLoading(
             false
@@ -644,9 +789,11 @@ async function restoreSession() {
                 error
             );
 
+
             setStatus(
                 "Authentication error"
             );
+
 
             return;
         }
@@ -655,9 +802,7 @@ async function restoreSession() {
         /*
          * No existing session.
          *
-         * This is completely normal.
-         *
-         * The public PDF should still be visible.
+         * PDF remains visible.
          */
 
         if (
@@ -669,14 +814,16 @@ async function restoreSession() {
                 "Signed out"
             );
 
+
             showGuestState();
+
 
             return;
         }
 
 
         /*
-         * Existing session found.
+         * Existing session.
          */
 
         await loadUserProfile(
@@ -690,6 +837,7 @@ async function restoreSession() {
             "Session restore error:",
             error
         );
+
 
         setStatus(
             "Authentication error"
@@ -732,11 +880,6 @@ supabaseClient.auth.onAuthStateChange(
             "SIGNED_IN" &&
             session
         ) {
-
-            /*
-             * Don't load the profile twice
-             * if it is already loaded.
-             */
 
             if (
                 !currentProfile
@@ -792,9 +935,11 @@ async function loadUserProfile(user) {
                 error
             );
 
+
             showLoginError(
                 "Could not load your profile."
             );
+
 
             return false;
         }
@@ -806,13 +951,10 @@ async function loadUserProfile(user) {
                 "Your account does not have a LabChat profile."
             );
 
+
             return false;
         }
 
-
-        /*
-         * Check account status.
-         */
 
         if (
             data.is_active !== true
@@ -822,12 +964,16 @@ async function loadUserProfile(user) {
                 "Your LabChat account is inactive."
             );
 
+
             return false;
         }
 
 
         /*
          * ADMIN
+         *
+         * Keep authentication support,
+         * but do not change the PDF system.
          */
 
         if (
@@ -861,23 +1007,21 @@ async function loadUserProfile(user) {
                 "Your account has an invalid role."
             );
 
+
             return false;
         }
 
 
-        /*
-         * Save authenticated user.
-         */
-
         currentUser =
             user;
+
 
         currentProfile =
             data;
 
 
         /*
-         * Update UI.
+         * Update username.
          */
 
         if (currentUserElement) {
@@ -888,21 +1032,28 @@ async function loadUserProfile(user) {
         }
 
 
-        if (loginNotice) {
-
-            loginNotice.classList.add(
-                "hidden"
-            );
-
-        }
-
+        /*
+         * Close login.
+         */
 
         closeLogin();
 
 
         /*
-         * Enable chat.
+         * The PDF remains available.
+         *
+         * The chat becomes available
+         * after successful login.
          */
+
+        if (chatScreen) {
+
+            chatScreen.classList.remove(
+                "hidden"
+            );
+
+        }
+
 
         enableChatControls();
 
@@ -913,12 +1064,10 @@ async function loadUserProfile(user) {
 
 
         /*
-         * Load chat data.
+         * Load chat.
          */
 
         await loadMessages();
-
-        await loadActivePDF();
 
         subscribeToMessages();
 
@@ -952,9 +1101,11 @@ async function loadUserProfile(user) {
             error
         );
 
+
         showLoginError(
             "Could not load your LabChat profile."
         );
+
 
         return false;
 
@@ -972,6 +1123,7 @@ function showGuestState() {
     currentUser =
         null;
 
+
     currentProfile =
         null;
 
@@ -984,27 +1136,33 @@ function showGuestState() {
     }
 
 
-    if (loginNotice) {
+    disableChatControls();
 
-        loginNotice.classList.remove(
+
+    /*
+     * PDF remains visible.
+     */
+
+    if (pdfViewerScreen) {
+
+        pdfViewerScreen.classList.remove(
             "hidden"
         );
 
     }
 
 
-    disableChatControls();
-
-
     /*
-     * IMPORTANT:
-     *
-     * We DO NOT hide the PDF here.
-     *
-     * PDF is public.
+     * Chat remains hidden until login.
      */
 
-    loadActivePDF();
+    if (chatScreen) {
+
+        chatScreen.classList.add(
+            "hidden"
+        );
+
+    }
 
 }
 
@@ -1047,9 +1205,7 @@ function clearLoginError() {
    LOGIN BUTTON STATE
 ========================================================= */
 
-function setLoginLoading(
-    loading
-) {
+function setLoginLoading(loading) {
 
     if (!loginButton) {
         return;
@@ -1072,9 +1228,7 @@ function setLoginLoading(
    LOGIN ERROR MESSAGE
 ========================================================= */
 
-function getLoginErrorMessage(
-    error
-) {
+function getLoginErrorMessage(error) {
 
     if (!error) {
 
@@ -1127,7 +1281,6 @@ function getLoginErrorMessage(
 
 function enableChatControls() {
 
-
     if (messageInput) {
 
         messageInput.disabled =
@@ -1163,7 +1316,6 @@ function enableChatControls() {
 
 function disableChatControls() {
 
-
     if (messageInput) {
 
         messageInput.disabled =
@@ -1194,13 +1346,999 @@ function disableChatControls() {
 
 
 /* =========================================================
+   PDF CONTROLS
+========================================================= */
+
+function setupPDFControls() {
+
+    if (pdfPreviousButton) {
+
+        pdfPreviousButton.addEventListener(
+            "click",
+            () => {
+
+                if (
+                    pdfCurrentPage <= 1
+                ) {
+
+                    return;
+
+                }
+
+
+                pdfCurrentPage--;
+
+                queuePDFRender(
+                    pdfCurrentPage
+                );
+
+            }
+        );
+
+    }
+
+
+    if (pdfNextButton) {
+
+        pdfNextButton.addEventListener(
+            "click",
+            () => {
+
+                if (
+                    !pdfDocument ||
+                    pdfCurrentPage >=
+                        pdfDocument.numPages
+                ) {
+
+                    return;
+
+                }
+
+
+                pdfCurrentPage++;
+
+                queuePDFRender(
+                    pdfCurrentPage
+                );
+
+            }
+        );
+
+    }
+
+
+    if (pdfZoomOutButton) {
+
+        pdfZoomOutButton.addEventListener(
+            "click",
+            () => {
+
+                setPDFZoom(
+                    pdfScale - 0.1
+                );
+
+            }
+        );
+
+    }
+
+
+    if (pdfZoomInButton) {
+
+        pdfZoomInButton.addEventListener(
+            "click",
+            () => {
+
+                setPDFZoom(
+                    pdfScale + 0.1
+                );
+
+            }
+        );
+
+    }
+
+
+    if (pdfFitButton) {
+
+        pdfFitButton.addEventListener(
+            "click",
+            fitPDFPage
+        );
+
+    }
+
+
+    /*
+     * Recalculate fit size when
+     * browser window changes.
+     */
+
+    window.addEventListener(
+        "resize",
+        () => {
+
+            if (
+                pdfDocument
+            ) {
+
+                fitPDFPage();
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   LOAD PDF.JS
+========================================================= */
+
+async function loadPDFJS() {
+
+    if (pdfjsLib) {
+
+        return pdfjsLib;
+
+    }
+
+
+    /*
+     * Dynamically import PDF.js.
+     *
+     * This means index.html does not
+     * need a PDF.js <script> tag.
+     */
+
+    pdfjsLib =
+        await import(
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.min.mjs"
+        );
+
+
+    /*
+     * PDF.js worker.
+     */
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.worker.min.mjs";
+
+
+    return pdfjsLib;
+
+}
+
+
+/* =========================================================
+   LOAD PUBLIC PDF
+========================================================= */
+
+async function loadPublicPDF() {
+
+    console.log(
+        "Loading public PDF:",
+        PDF_URL
+    );
+
+
+    if (!pdfViewerScreen) {
+
+        console.error(
+            "pdfViewerScreen not found."
+        );
+
+
+        return;
+
+    }
+
+
+    if (!pdfPages) {
+
+        console.error(
+            "pdfPages not found."
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+     * Set title immediately.
+     */
+
+    if (pdfDocumentTitle) {
+
+        pdfDocumentTitle.textContent =
+            PDF_TITLE;
+
+    }
+
+
+    /*
+     * Show loading state.
+     */
+
+    showPDFLoading();
+
+
+    hidePDFError();
+
+
+    try {
+
+        /*
+         * Load PDF.js.
+         */
+
+        const pdfjs =
+            await loadPDFJS();
+
+
+        console.log(
+            "PDF.js loaded."
+        );
+
+
+        /*
+         * Load document.
+         */
+
+        const loadingTask =
+            pdfjs.getDocument(
+                {
+                    url:
+                        PDF_URL
+                }
+            );
+
+
+        pdfDocument =
+            await loadingTask.promise;
+
+
+        console.log(
+            "PDF loaded successfully.",
+            "Pages:",
+            pdfDocument.numPages
+        );
+
+
+        /*
+         * Start at page 1.
+         */
+
+        pdfCurrentPage =
+            1;
+
+
+        /*
+         * Reset scale.
+         */
+
+        pdfScale =
+            1;
+
+
+        /*
+         * Update page counter.
+         */
+
+        updatePDFPageNumber();
+
+
+        /*
+         * Render first page.
+         */
+
+        await renderPDFPage(
+            pdfCurrentPage
+        );
+
+
+        /*
+         * Fit page after initial
+         * rendering.
+         */
+
+        await fitPDFPage();
+
+
+        /*
+         * PDF is ready.
+         */
+
+        hidePDFLoading();
+
+
+        updatePDFControls();
+
+
+        console.log(
+            "Public PDF viewer ready."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "PDF loading error:",
+            error
+        );
+
+
+        hidePDFLoading();
+
+
+        showPDFError(
+            getPDFErrorMessage(
+                error
+            )
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER PDF PAGE
+========================================================= */
+
+async function renderPDFPage(pageNumber) {
+
+    if (!pdfDocument) {
+
+        return;
+
+    }
+
+
+    if (pdfRendering) {
+
+        pdfPendingPage =
+            pageNumber;
+
+        return;
+
+    }
+
+
+    pdfRendering =
+        true;
+
+
+    try {
+
+        const page =
+            await pdfDocument.getPage(
+                pageNumber
+            );
+
+
+        /*
+         * Get viewport.
+         */
+
+        const viewport =
+            page.getViewport(
+                {
+                    scale:
+                        pdfScale
+                }
+            );
+
+
+        /*
+         * Clear current page.
+         */
+
+        pdfPages.innerHTML =
+            "";
+
+
+        /*
+         * Page wrapper.
+         */
+
+        const pageContainer =
+            document.createElement(
+                "div"
+            );
+
+
+        pageContainer.className =
+            "pdf-page";
+
+
+        /*
+         * Canvas.
+         */
+
+        const canvas =
+            document.createElement(
+                "canvas"
+            );
+
+
+        canvas.className =
+            "pdf-canvas";
+
+
+        const context =
+            canvas.getContext(
+                "2d"
+            );
+
+
+        /*
+         * High-DPI rendering.
+         */
+
+        const outputScale =
+            window.devicePixelRatio ||
+            1;
+
+
+        canvas.width =
+            Math.floor(
+                viewport.width *
+                outputScale
+            );
+
+
+        canvas.height =
+            Math.floor(
+                viewport.height *
+                outputScale
+            );
+
+
+        canvas.style.width =
+            `${viewport.width}px`;
+
+
+        canvas.style.height =
+            `${viewport.height}px`;
+
+
+        pageContainer.appendChild(
+            canvas
+        );
+
+
+        pdfPages.appendChild(
+            pageContainer
+        );
+
+
+        /*
+         * Render.
+         */
+
+        const renderContext = {
+
+            canvasContext:
+                context,
+
+            viewport:
+                viewport,
+
+            transform:
+                outputScale !== 1
+                    ? [
+                        outputScale,
+                        0,
+                        0,
+                        outputScale,
+                        0,
+                        0
+                    ]
+                    : null
+
+        };
+
+
+        await page.render(
+            renderContext
+        ).promise;
+
+
+        updatePDFPageNumber();
+
+        updatePDFControls();
+
+
+    } catch (error) {
+
+        console.error(
+            "PDF page render error:",
+            error
+        );
+
+
+        showPDFError(
+            "Unable to render this page."
+        );
+
+    } finally {
+
+        pdfRendering =
+            false;
+
+
+        /*
+         * If another page was requested
+         * while rendering, render it now.
+         */
+
+        if (
+            pdfPendingPage !== null
+        ) {
+
+            const pendingPage =
+                pdfPendingPage;
+
+
+            pdfPendingPage =
+                null;
+
+
+            renderPDFPage(
+                pendingPage
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   QUEUE PDF RENDER
+========================================================= */
+
+function queuePDFRender(pageNumber) {
+
+    if (!pdfDocument) {
+
+        return;
+
+    }
+
+
+    if (
+        pageNumber < 1 ||
+        pageNumber >
+            pdfDocument.numPages
+    ) {
+
+        return;
+
+    }
+
+
+    pdfCurrentPage =
+        pageNumber;
+
+
+    renderPDFPage(
+        pageNumber
+    );
+
+}
+
+
+/* =========================================================
+   SET PDF ZOOM
+========================================================= */
+
+function setPDFZoom(newScale) {
+
+    /*
+     * Minimum zoom:
+     * 50%
+     */
+
+    newScale =
+        Math.max(
+            0.5,
+            newScale
+        );
+
+
+    /*
+     * Maximum zoom:
+     * 300%
+     */
+
+    newScale =
+        Math.min(
+            3,
+            newScale
+        );
+
+
+    /*
+     * Round to nearest 10%.
+     */
+
+    newScale =
+        Math.round(
+            newScale * 10
+        ) / 10;
+
+
+    pdfScale =
+        newScale;
+
+
+    updatePDFZoomValue();
+
+
+    queuePDFRender(
+        pdfCurrentPage
+    );
+
+}
+
+
+/* =========================================================
+   FIT PDF PAGE
+========================================================= */
+
+async function fitPDFPage() {
+
+    if (
+        !pdfDocument ||
+        !pdfViewport
+    ) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const page =
+            await pdfDocument.getPage(
+                pdfCurrentPage
+            );
+
+
+        /*
+         * Get page at scale 1.
+         */
+
+        const baseViewport =
+            page.getViewport(
+                {
+                    scale:
+                        1
+                }
+            );
+
+
+        /*
+         * Available viewport space.
+         */
+
+        const horizontalPadding =
+            40;
+
+
+        const verticalPadding =
+            40;
+
+
+        const availableWidth =
+            Math.max(
+                100,
+                pdfViewport.clientWidth -
+                    horizontalPadding
+            );
+
+
+        const availableHeight =
+            Math.max(
+                100,
+                pdfViewport.clientHeight -
+                    verticalPadding
+            );
+
+
+        /*
+         * Calculate scale.
+         */
+
+        const widthScale =
+            availableWidth /
+            baseViewport.width;
+
+
+        const heightScale =
+            availableHeight /
+            baseViewport.height;
+
+
+        pdfFitScale =
+            Math.min(
+                widthScale,
+                heightScale
+            );
+
+
+        /*
+         * Keep fit scale reasonable.
+         */
+
+        pdfFitScale =
+            Math.max(
+                0.5,
+                Math.min(
+                    3,
+                    pdfFitScale
+                )
+            );
+
+
+        pdfScale =
+            pdfFitScale;
+
+
+        updatePDFZoomValue();
+
+
+        await renderPDFPage(
+            pdfCurrentPage
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "PDF fit error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   UPDATE PDF PAGE NUMBER
+========================================================= */
+
+function updatePDFPageNumber() {
+
+    if (!pdfPageNumber) {
+
+        return;
+
+    }
+
+
+    const totalPages =
+        pdfDocument
+            ? pdfDocument.numPages
+            : 1;
+
+
+    pdfPageNumber.textContent =
+        `${pdfCurrentPage} / ${totalPages}`;
+
+}
+
+
+/* =========================================================
+   UPDATE PDF ZOOM VALUE
+========================================================= */
+
+function updatePDFZoomValue() {
+
+    if (!pdfZoomValue) {
+
+        return;
+
+    }
+
+
+    const percentage =
+        Math.round(
+            pdfScale * 100
+        );
+
+
+    pdfZoomValue.textContent =
+        `${percentage}%`;
+
+}
+
+
+/* =========================================================
+   UPDATE PDF BUTTONS
+========================================================= */
+
+function updatePDFControls() {
+
+    if (pdfPreviousButton) {
+
+        pdfPreviousButton.disabled =
+            !pdfDocument ||
+            pdfCurrentPage <= 1;
+
+    }
+
+
+    if (pdfNextButton) {
+
+        pdfNextButton.disabled =
+            !pdfDocument ||
+            pdfCurrentPage >=
+                pdfDocument.numPages;
+
+    }
+
+
+    updatePDFPageNumber();
+
+    updatePDFZoomValue();
+
+}
+
+
+/* =========================================================
+   PDF LOADING STATE
+========================================================= */
+
+function showPDFLoading() {
+
+    if (pdfLoading) {
+
+        pdfLoading.classList.remove(
+            "hidden"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   HIDE PDF LOADING
+========================================================= */
+
+function hidePDFLoading() {
+
+    if (pdfLoading) {
+
+        pdfLoading.classList.add(
+            "hidden"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   PDF ERROR
+========================================================= */
+
+function showPDFError(message) {
+
+    if (!pdfError) {
+
+        return;
+
+    }
+
+
+    if (pdfErrorMessage) {
+
+        pdfErrorMessage.textContent =
+            message;
+
+    }
+
+
+    pdfError.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+/* =========================================================
+   HIDE PDF ERROR
+========================================================= */
+
+function hidePDFError() {
+
+    if (pdfError) {
+
+        pdfError.classList.add(
+            "hidden"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   PDF ERROR MESSAGE
+========================================================= */
+
+function getPDFErrorMessage(error) {
+
+    if (!error) {
+
+        return "Please try again.";
+
+    }
+
+
+    console.error(
+        "PDF error details:",
+        error
+    );
+
+
+    if (
+        error.name ===
+        "InvalidPDFException"
+    ) {
+
+        return "The document is not a valid PDF.";
+
+    }
+
+
+    if (
+        error.name ===
+        "MissingPDFException"
+    ) {
+
+        return "The PDF file could not be found.";
+
+    }
+
+
+    if (
+        error.name ===
+        "UnexpectedResponseException"
+    ) {
+
+        return "The PDF server returned an unexpected response.";
+
+    }
+
+
+    return (
+        "The document could not be loaded. Please try again."
+    );
+
+}
+
+
+/* =========================================================
    LOAD MESSAGES
 ========================================================= */
 
 async function loadMessages() {
 
     if (!messagesContainer) {
+
         return;
+
     }
 
 
@@ -1225,7 +2363,8 @@ async function loadMessages() {
                 .order(
                     "created_at",
                     {
-                        ascending: true
+                        ascending:
+                            true
                     }
                 );
 
@@ -1237,9 +2376,11 @@ async function loadMessages() {
                 error
             );
 
+
             setStatus(
                 "Database error"
             );
+
 
             return;
         }
@@ -1280,6 +2421,7 @@ async function loadMessages() {
             error
         );
 
+
         setStatus(
             "Database error"
         );
@@ -1295,12 +2437,12 @@ async function loadMessages() {
 
 function subscribeToMessages() {
 
-
     if (realtimeChannel) {
 
         supabaseClient.removeChannel(
             realtimeChannel
         );
+
 
         realtimeChannel =
             null;
@@ -1399,211 +2541,15 @@ function subscribeToMessages() {
 
 
 /* =========================================================
-   LOAD PUBLIC PDF
-========================================================= */
-
-async function loadActivePDF() {
-
-    console.log(
-        "Loading public PDF..."
-    );
-
-
-    if (!pdfSection) {
-
-        console.error(
-            "pdfSection not found."
-        );
-
-        return;
-    }
-
-
-    /*
-     * Hide temporarily while loading.
-     */
-
-    pdfSection.classList.add(
-        "hidden"
-    );
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("pdf_documents")
-                .select(
-                    "file_name, github_url"
-                )
-                .eq(
-                    "is_active",
-                    true
-                )
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                )
-                .limit(1)
-                .maybeSingle();
-
-
-        /*
-         * Database / RLS error.
-         */
-
-        if (error) {
-
-            console.error(
-                "Public PDF load error:",
-                error
-            );
-
-
-            if (pdfStatus) {
-
-                pdfStatus.textContent =
-                    "Unable to load document.";
-
-            }
-
-
-            return;
-        }
-
-
-        /*
-         * No active PDF.
-         */
-
-        if (!data) {
-
-            console.log(
-                "No active PDF found."
-            );
-
-
-            return;
-        }
-
-
-        /*
-         * Missing URL.
-         */
-
-        if (!data.github_url) {
-
-            console.error(
-                "PDF exists but github_url is empty."
-            );
-
-
-            if (pdfTitle) {
-
-                pdfTitle.textContent =
-                    data.file_name ||
-                    "Lab PDF";
-
-            }
-
-
-            if (pdfStatus) {
-
-                pdfStatus.textContent =
-                    "PDF link is missing.";
-
-            }
-
-
-            pdfSection.classList.remove(
-                "hidden"
-            );
-
-
-            return;
-        }
-
-
-        /*
-         * Set PDF information.
-         */
-
-        if (pdfTitle) {
-
-            pdfTitle.textContent =
-                data.file_name ||
-                "Lab PDF";
-
-        }
-
-
-        if (pdfStatus) {
-
-            pdfStatus.textContent =
-                "Active lab document";
-
-        }
-
-
-        if (pdfButton) {
-
-            pdfButton.href =
-                data.github_url;
-
-            pdfButton.target =
-                "_blank";
-
-            pdfButton.rel =
-                "noopener noreferrer";
-
-        }
-
-
-        /*
-         * SHOW PDF
-         *
-         * This happens regardless of
-         * whether the user is logged in.
-         */
-
-        pdfSection.classList.remove(
-            "hidden"
-        );
-
-
-        console.log(
-            "Public PDF loaded:",
-            data.file_name,
-            data.github_url
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Unexpected PDF error:",
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
    PRESENCE
 ========================================================= */
 
 function startPresence() {
 
-
     if (!currentProfile) {
+
         return;
+
     }
 
 
@@ -1612,6 +2558,7 @@ function startPresence() {
         supabaseClient.removeChannel(
             presenceChannel
         );
+
 
         presenceChannel =
             null;
@@ -1638,10 +2585,6 @@ function startPresence() {
         );
 
 
-    /*
-     * Presence sync
-     */
-
     presenceChannel.on(
         "presence",
         {
@@ -1651,10 +2594,6 @@ function startPresence() {
         updateOnlineCount
     );
 
-
-    /*
-     * User joined
-     */
 
     presenceChannel.on(
         "presence",
@@ -1666,10 +2605,6 @@ function startPresence() {
     );
 
 
-    /*
-     * User left
-     */
-
     presenceChannel.on(
         "presence",
         {
@@ -1679,10 +2614,6 @@ function startPresence() {
         updateOnlineCount
     );
 
-
-    /*
-     * Subscribe
-     */
 
     presenceChannel.subscribe(
         async (status) => {
@@ -1737,6 +2668,7 @@ function updateOnlineCount() {
     ) {
 
         return;
+
     }
 
 
@@ -1790,27 +2722,24 @@ function updateOnlineCount() {
    SEND MESSAGE
 ========================================================= */
 
-async function handleMessageSubmit(
-    event
-) {
+async function handleMessageSubmit(event) {
 
     event.preventDefault();
 
-
-    /*
-     * Guest cannot send.
-     */
 
     if (!currentUser) {
 
         openLogin();
 
         return;
+
     }
 
 
     if (!messageInput) {
+
         return;
+
     }
 
 
@@ -1913,16 +2842,12 @@ async function handleMessageSubmit(
    MESSAGE KEYBOARD
 ========================================================= */
 
-function handleMessageKeydown(
-    event
-) {
-
+function handleMessageKeydown(event) {
 
     /*
      * Normal mode:
      *
      * Enter = send
-     *
      * Shift + Enter = newline
      */
 
@@ -1934,13 +2859,16 @@ function handleMessageKeydown(
 
         event.preventDefault();
 
+
         if (messageForm) {
 
             messageForm.requestSubmit();
 
         }
 
+
         return;
+
     }
 
 
@@ -1948,7 +2876,6 @@ function handleMessageKeydown(
      * Code mode:
      *
      * Enter = newline
-     *
      * Ctrl + Enter = send
      */
 
@@ -1959,6 +2886,7 @@ function handleMessageKeydown(
     ) {
 
         event.preventDefault();
+
 
         if (messageForm) {
 
@@ -1977,12 +2905,12 @@ function handleMessageKeydown(
 
 function toggleCodeMode() {
 
-
     if (!currentUser) {
 
         openLogin();
 
         return;
+
     }
 
 
@@ -2075,10 +3003,6 @@ function addMessage(message) {
     }
 
 
-    /*
-     * Check expiration.
-     */
-
     const expires =
         new Date(
             message.expires_at
@@ -2098,7 +3022,7 @@ function addMessage(message) {
 
 
     /*
-     * Prevent duplicate messages.
+     * Prevent duplicates.
      */
 
     if (
@@ -2115,10 +3039,6 @@ function addMessage(message) {
     removeEmptyState();
 
 
-    /*
-     * Main message element.
-     */
-
     const messageElement =
         document.createElement(
             "article"
@@ -2133,14 +3053,10 @@ function addMessage(message) {
         message.id;
 
 
-    /*
-     * Own message.
-     */
-
     if (
         currentProfile &&
         message.username ===
-        currentProfile.username
+            currentProfile.username
     ) {
 
         messageElement.classList.add(
@@ -2150,9 +3066,9 @@ function addMessage(message) {
     }
 
 
-    /* =====================================================
-       CODE MESSAGE
-    ===================================================== */
+    /*
+     * CODE MESSAGE
+     */
 
     if (message.is_code) {
 
@@ -2226,9 +3142,9 @@ function addMessage(message) {
     }
 
 
-    /* =====================================================
-       NORMAL MESSAGE
-    ===================================================== */
+    /*
+     * NORMAL MESSAGE
+     */
 
     else {
 
@@ -2340,18 +3256,13 @@ function addMessage(message) {
     }
 
 
-    /*
-     * Add to chat.
-     */
-
     messagesContainer.appendChild(
         messageElement
     );
 
 
     /*
-     * Remove automatically when
-     * the 5-minute expiration occurs.
+     * Automatic 5-minute expiration.
      */
 
     const remaining =
@@ -2376,7 +3287,8 @@ function addMessage(message) {
 
 
                 if (
-                    messagesContainer.children
+                    messagesContainer
+                        .children
                         .length === 0
                 ) {
 
@@ -2476,7 +3388,9 @@ function createCopyButton(
 function linkify(element) {
 
     if (!element) {
+
         return;
+
     }
 
 
@@ -2535,7 +3449,6 @@ function linkify(element) {
 
             }
 
-
             else {
 
                 element.appendChild(
@@ -2556,9 +3469,7 @@ function linkify(element) {
    TIME
 ========================================================= */
 
-function formatTime(
-    timestamp
-) {
+function formatTime(timestamp) {
 
     return new Date(
         timestamp
@@ -2583,7 +3494,9 @@ function formatTime(
 function showEmptyState() {
 
     if (!messagesContainer) {
+
         return;
+
     }
 
 
@@ -2648,7 +3561,9 @@ function showEmptyState() {
 function removeEmptyState() {
 
     if (!messagesContainer) {
+
         return;
+
     }
 
 
@@ -2671,12 +3586,12 @@ function removeEmptyState() {
    STATUS
 ========================================================= */
 
-function setStatus(
-    status
-) {
+function setStatus(status) {
 
     if (!connectionStatus) {
+
         return;
+
     }
 
 
@@ -2693,7 +3608,9 @@ function setStatus(
 function autoResizeTextarea() {
 
     if (!messageInput) {
+
         return;
+
     }
 
 
@@ -2717,7 +3634,9 @@ function autoResizeTextarea() {
 function scrollToBottom() {
 
     if (!messagesContainer) {
+
         return;
+
     }
 
 
@@ -2741,7 +3660,7 @@ async function leaveChat() {
     try {
 
         /*
-         * Stop presence first.
+         * Stop presence.
          */
 
         if (presenceChannel) {
@@ -2791,7 +3710,7 @@ async function leaveChat() {
 
 
         /*
-         * Sign out from Supabase.
+         * Supabase sign out.
          */
 
         await supabaseClient.auth.signOut();
@@ -2844,9 +3763,26 @@ async function resetLabChat() {
     }
 
 
-    if (loginNotice) {
+    /*
+     * Hide chat.
+     */
 
-        loginNotice.classList.remove(
+    if (chatScreen) {
+
+        chatScreen.classList.add(
+            "hidden"
+        );
+
+    }
+
+
+    /*
+     * Keep PDF visible.
+     */
+
+    if (pdfViewerScreen) {
+
+        pdfViewerScreen.classList.remove(
             "hidden"
         );
 
@@ -2914,10 +3850,6 @@ async function resetLabChat() {
     }
 
 
-    /*
-     * Disable chat.
-     */
-
     disableChatControls();
 
 
@@ -2927,18 +3859,7 @@ async function resetLabChat() {
 
 
     /*
-     * IMPORTANT
-     *
-     * DO NOT HIDE THE PDF.
-     *
-     * PDF is public.
-     */
-
-    await loadActivePDF();
-
-
-    /*
-     * Show login.
+     * Open login popup.
      */
 
     openLogin();
